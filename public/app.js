@@ -1,5 +1,5 @@
-import { commentFrame, commentPosition, makePanel, tabletAsset } from './scenes.js';
-import { arrangeComments } from './comment-layout.js';
+import { commentFrame, makePanel, tabletAsset } from './scenes.js';
+import { arrangeComments, commentDock } from './comment-layout.js';
 import { showSettings } from './settings.js';
 
 const app = document.querySelector('#app');
@@ -163,7 +163,8 @@ function showLive(view, comment, now, scene) {
   moment.dataset.motion = comment.wallMotion ?? 'impact';
   moment.style.setProperty('--elapsed', `-${Math.max(0, now - comment.start)}ms`);
   moment.style.setProperty('--duration', `${(comment.compactAt ?? comment.end) - comment.start}ms`);
-  const dock = commentPosition(scene, comment.slot ?? 0);
+  const panelHeight = view.panel.clientWidth ? view.panel.clientHeight * 100 / view.panel.clientWidth : 100;
+  const dock = commentDock(scene, comment.slot ?? 0, panelHeight);
   moment.style.setProperty('--dock-x', `${dock.x - 50}%`);
   moment.style.setProperty('--dock-y', `${dock.y - 50}%`);
   moment.style.setProperty('--entry-x', `${(1 - comment.panel) * 25}cqw`);
@@ -312,10 +313,9 @@ function wall() {
       if (layer) {
         compactComments(view.panel, layer, compact, post);
         if (entering && app.classList.contains('animate-story-cards')) {
-          for (const [id, position] of layer.compactPositions) {
-            const x = (50 - position.x) * .16;
+          for (const id of layer.compactPositions.keys()) {
             const animation = layer.compactCards.get(id).animate([
-              { transform: `translateX(${x}cqw) translateY(1.2cqw) scale(.94)` },
+              { transform: 'scale(.94)' },
               { transform: 'none' }
             ], { duration: sceneFade, easing: 'cubic-bezier(.22,.75,.25,1)' });
             animation.startTime = document.timeline.currentTime - phaseElapsed;

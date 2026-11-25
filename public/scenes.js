@@ -3,20 +3,21 @@ export const tabletAsset = number => `${source}/tablet/Asset%20${number}.png`;
 
 // Layout coordinates are measured in a 960 × 540 reference of the supplied exports.
 const postArtworkWidth = 396;
+const postArtworkX = 480;
 const postArtworkY = 284;
 const commentArtworkWidth = 278;
 const visibleCardMargin = commentArtworkWidth / 2 + 3;
 const postLayouts = [
-  { background: 65, bodyX: 476, cards: [[62, 189, 230], [60, 164, 383], [63, 772, 205], [59, 805, 314], [61, 757, 418]] },
-  { background: 80, bodyX: 474, cards: [[78, 190, 165], [77, 154, 287], [75, 193, 420], [76, 781, 273], [72, 762, 424]] },
-  { background: 148, bodyX: 477, cards: [[145, 196, 225], [144, 154, 324], [143, 770, 188], [142, 806, 293], [141, 770, 398]] },
-  { background: 162, bodyX: 476, cards: [[159, 189, 230], [157, 164, 383], [160, 772, 205], [156, 805, 314], [158, 757, 418]] },
-  { background: 178, bodyX: 476, cards: [[174, 195, 227], [173, 154, 325], [172, 770, 190], [171, 806, 293], [170, 770, 400]] },
-  { background: 194, bodyX: 476, cards: [[192, 196, 225], [191, 154, 324], [190, 770, 188], [189, 806, 293], [188, 770, 398]] },
+  { background: 65, cards: [[62, 189, 230], [60, 164, 383], [63, 772, 205], [59, 805, 314], [61, 757, 418]] },
+  { background: 80, cards: [[78, 190, 165], [77, 154, 287], [75, 193, 420], [76, 781, 273], [72, 762, 424]] },
+  { background: 148, cards: [[145, 196, 225], [144, 154, 324], [143, 770, 188], [142, 806, 293], [141, 770, 398]] },
+  { background: 162, cards: [[159, 189, 230], [157, 164, 383], [160, 772, 205], [156, 805, 314], [158, 757, 418]] },
+  { background: 178, cards: [[174, 195, 227], [173, 154, 325], [172, 770, 190], [171, 806, 293], [170, 770, 400]] },
+  { background: 194, cards: [[192, 196, 225], [191, 154, 324], [190, 770, 188], [189, 806, 293], [188, 770, 398]] },
 ].map(layout => ({
   ...layout,
   // Make room for the wider post while keeping the original stagger on each side.
-  cards: layout.cards.map(([asset, x, y]) => [asset, x < layout.bodyX ? 142 + (x - 154) / 3 : 818 - (806 - x) / 3, y])
+  cards: layout.cards.map(([asset, x, y]) => [asset, x < postArtworkX ? 142 + (x - 154) / 3 : 818 - (806 - x) / 3, y])
 }));
 const idleLayouts = [
   { title: [31, 454, 229, 686], subtitle: [30, 454, 391, 686], background: 32 },
@@ -54,15 +55,13 @@ export function commentFrame(scene) {
   return height * commentWidth / width;
 }
 
-function postHeight(scene, width) {
-  return width / 9.6 * (scene === 6 ? 614 / 441 : 1.415);
-}
+const postAspectHeights = [604 / 430, 603 / 430, 605 / 430, 606 / 430, 607 / 430, 614 / 441];
 
 export function commentObstacles(scene, height) {
-  const { bodyX, cards } = postLayouts[scene - 1];
+  const { cards } = postLayouts[scene - 1];
   return [
     { x: 50, y: height * 68 / 540, width: 14.4, height: 7.55 },
-    { x: bodyX / 9.6, y: height * postArtworkY / 540, width: postArtworkWidth / 9.6, height: postHeight(scene, postArtworkWidth) },
+    { x: postArtworkX / 9.6, y: height * postArtworkY / 540, width: postArtworkWidth / 9.6, height: postArtworkWidth / 9.6 * postAspectHeights[scene - 1] },
     ...cards.map(([, x, y]) => ({ x: x / 9.6, y: height * y / 540, width: commentWidth, height: commentWidth * .234 }))
   ];
 }
@@ -131,7 +130,7 @@ export function makePanel(index) {
         artwork(asset(common, 27), 960, 540, 127, 'edge edge-bottom'),
       );
     }
-    const x = layout.bodyX;
+    const x = postArtworkX;
     const y = postArtworkY;
     scene.append(artwork(postImage(number), x, y, postArtworkWidth, 'post-body', 'Campaign social post'));
     const leftCards = layout.cards.filter(([, cardX]) => cardX < x);

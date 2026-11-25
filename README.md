@@ -27,7 +27,7 @@ Use **Idle rotation** to set how long the screensavers and each group of posts a
 
 Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit. A fixed LED keeps its comments on the same output and replaces the oldest there when the LED is full. The other routing modes can use any enabled LED with room. If all available LEDs are full, the new comment replaces the oldest there when it shrinks. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original comment cards slide out from behind the post.
 
-The five original comment cards stay visible during each comment scene. Audience comments shrink into cards that use the scene's original frame, shadow, heart, width and single-line height. The frame grows with each additional line. The app assigns a staggered position to each card and gives the latest comments priority when the artwork and taller comments leave less room than the configured limit.
+The five original comment cards stay visible during each comment scene. Audience comments shrink into cards that use the scene's original frame, shadow, heart, width and single-line height. The frame grows with each additional line. Compact cards stay beside the post between its top and bottom edges. The latest comments get priority when fewer cards fit than the configured limit.
 
 In **Tablet comments**, use **Refresh comments** to load the latest list, then **Delete** next to a queued or retained comment to remove it from the wall. For a Neon-backed installation, enter the **Settings access key** before deleting. Set `FONDAYO_ADMIN_TOKEN` in `.env.local` if the installation computer connects directly to Neon.
 

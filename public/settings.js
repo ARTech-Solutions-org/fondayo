@@ -5,6 +5,94 @@ const sceneNames = Array.from({ length: 6 }, (_, index) => `Scene ${index + 1}`)
 const saverNames = ['Black when idle', 'Screensaver 1', 'Screensaver 2', 'Screensaver 3'];
 const checked = value => value ? ' checked' : '';
 
+const settingHelp = {
+  enabled: ['Enable LED', 'An enabled LED follows the wall rotation. Switching it off blacks out the output and cancels its queued pop-ups. Saved comments can appear again when it is enabled.', ['Enabled', 'post'], ['Disabled', 'black']],
+  saver: ['LED screensaver', 'Choose the artwork this LED shows during the screensaver phase. Black when idle keeps that output black during idle playback.', ['Screensaver 1', 'saver'], ['Screensaver 2', 'saver-two']],
+  limit: ['LED comment limit', 'Set the maximum number of retained tablet comments for this LED. Default uses the limit in Playback and submissions. When replacing a comment, the oldest eligible card is removed.', ['2 comments', 'post'], ['4 comments', 'more-comments']],
+  idleSlideTime: ['Time on screensavers', 'Controls how many seconds the screensaver phase lasts before all LEDs advance to the first group of posts.', ['Screensaver for 5 seconds', 'saver'], ['Screensaver for 10 seconds', 'saver']],
+  idleFirstPostTime: ['Time on posts 1–3', 'Controls how long the first group of posts stays visible during idle playback before the wall moves to posts 4–6.', ['Posts 1–3 for 5 seconds', 'post'], ['Posts 1–3 for 10 seconds', 'post']],
+  idleSecondPostTime: ['Time on posts 4–6', 'Controls how long the second group of posts stays visible during idle playback before the screensavers return.', ['Posts 4–6 for 5 seconds', 'post-four'], ['Posts 4–6 for 10 seconds', 'post-four']],
+  idleFadeTime: ['Crossfade duration', 'Controls how long the outgoing and incoming artwork blend during idle playback. Zero switches immediately.', ['0 seconds · instant switch', 'post'], ['0.8 seconds · mid-transition', 'crossfade']],
+  sceneEnabled: ['Enable scene', 'Enabled scenes can be used for playback and comments. Switching one off makes it unavailable for tablet submissions to that scene. The LED can still show its other enabled scene.', ['Scene enabled', 'post'], ['Scene disabled · other post', 'post-four']],
+  panelByScene: ['Default LED for this scene', 'Sets the preferred LED for tablets using Follow scene LED. Tablets with a fixed LED or Random LED use their own routing.', ['Follow scene → left LED'], ['Follow scene → center LED']],
+  tabletCount: ['Number of tablets', 'Sets how many tablet routes are available after you save. Each tablet has its own numbered link and routing settings.', ['1 device · /tablet/1'], ['2 devices · /tablet/1 and /tablet/2']],
+  tabletEnabled: ['Enable tablet', 'Allows this numbered tablet to accept and send comments. Turning it off closes that tablet route for submissions.', ['Enabled · can send comments'], ['Disabled · submissions blocked']],
+  sceneByTablet: ['Tablet scene', 'Chooses the scene used by this tablet. A fixed LED offers its two scenes. Random LED chooses a scene automatically, and each submitted comment stays on its assigned scene.', ['Left LED · Scene 1', 'post'], ['Left LED · Scene 4', 'post-four']],
+  panelByTablet: ['Tablet LED', 'Follow scene LED uses the selected scene’s default output. A fixed LED keeps comments there. Random LED picks an available enabled output and one of its enabled scenes.', ['Left LED · Scene 1', 'post'], ['Random LED · e.g. Center LED, Scene 2', 'post-two']],
+  accepting: ['Accept new comments', 'Pauses or resumes submissions from all tablets. Comments already saved remain available on their scenes.', ['On · tablets can submit'], ['Off · new submissions paused']],
+  writingTimeout: ['Return after no typing', 'A draft holds the wall on the post group while the visitor is typing. This is how many seconds a quiet draft can keep that hold before it expires.', ['Stops holding after 15 seconds'], ['Stops holding after 45 seconds']],
+  spotlight: ['Large comment time', 'Sets how long the new comment remains in its large pop-up before it shrinks beside its post.', ['Large for 2 seconds', 'spotlight'], ['Large for 5 seconds', 'spotlight']],
+  duration: ['Hold post group after shrinking', 'The countdown starts when the comment shrinks. It controls how long the wall holds the post group before it can return to idle playback.', ['Hold the post for 5 seconds', 'post'], ['Hold the post for 10 seconds', 'post']],
+  commentLimit: ['Default small-comment limit per LED', 'Sets the retention limit for each LED using Default comment limit. An individual LED can override it. If the artwork leaves less space, the newest cards have display priority.', ['Default limit of 2', 'post'], ['Default limit of 4', 'more-comments']],
+  leadTime: ['Delay before first appearance', 'Adds a delay between accepting a tablet submission and showing its first pop-up. Another comment already queued on that LED can add to the wait.', ['0 seconds of added delay'], ['2 seconds before the pop-up']],
+  gap: ['Gap between comments on one LED', 'Sets the minimum pause between a pop-up shrinking and the next pop-up starting on the same LED.', ['0 seconds between pop-ups'], ['1 second between pop-ups']],
+  wallMotion: ['LED comment entrance', 'Impact adds a burst and a strong pop. Gentle rise uses a short lift. Instant shows the card at full size immediately.', ['Instant entrance', 'spotlight'], ['Impact entrance', 'impact']],
+  liveBackdrop: ['Whole wall during a pop-up', 'Changes the scene and cards behind the large comment across all LEDs. Keep visible leaves them clear, Blur and dim softens them, and Hide scene artwork removes them from view during the pop-up.', ['Keep visible', 'spotlight'], ['Blur and dim', 'blurred']],
+  tabletMotion: ['Fly comment out of the tablet', 'Plays a short flight animation on the tablet after a successful submission. Turning it off lets the tablet finish without the flight.', ['Off · form stays still', 'tablet'], ['On · card flies out', 'tablet-flight']],
+  storyMotion: ['Reveal original comments from behind the post', 'Plays the reveal of original comment artwork as it slides out from behind the post. When off, those cards appear in their final positions with the scene.', ['Off · cards in place', 'post'], ['On · mid-reveal', 'story']],
+  sceneMotion: ['Animate post artwork during comments', 'Adds an entrance to the post artwork when the wall opens the comment scene. The idle crossfade is controlled separately.', ['Off · post in place', 'post'], ['On · mid-entrance', 'scene-motion']],
+  accessKey: ['Settings access key', 'Enter the installation’s access key to save changes or delete tablet comments. On Vercel, this is the value configured in FONDAYO_ADMIN_TOKEN.'],
+  tabletComments: ['Tablet comments', 'Refresh to see the latest queued and saved tablet comments. Delete removes the selected comment from the wall. The original cards are part of the design.']
+};
+
+function helpPreview([caption, style]) {
+  if (!style) return `<figure><figcaption>${caption}</figcaption></figure>`;
+  const post = style === 'post-four' ? 4 : style === 'post-two' ? 2 : 1;
+  const tablet = style.startsWith('tablet');
+  const saver = style === 'saver' || style === 'saver-two';
+  const saverNumber = style === 'saver-two' ? 2 : 1;
+  const saverTitle = saverNumber === 1 ? 31 : 40;
+  const saverBackground = saverNumber === 1 ? 32 : 41;
+  const saverPath = `/design/design/screen%20sever%20post%201/screen-saver${saverNumber}/Asset%20`;
+  const artwork = saver
+    ? `<img class="preview-background" src="${saverPath}${saverBackground}.png" alt=""><img class="preview-title" src="${saverPath}${saverTitle}.png" alt="">`
+    : `<div class="preview-art"><img class="preview-post" src="${postImage(post)}" alt=""><div class="preview-cards"><i></i><i></i><i></i><i></i></div></div>`;
+  return `<figure><div class="settings-example ${style}" aria-hidden="true">
+    ${style === 'black' ? '' : tablet ? '<div class="preview-tablet"><i></i><i></i><i></i></div>' : artwork}
+    <div class="preview-pop">New comment</div>
+  </div><figcaption>${caption}</figcaption></figure>`;
+}
+
+function setupSettingHelp(app, form) {
+  const dialog = app.querySelector('#setting-help');
+  const title = dialog.querySelector('h2');
+  const content = dialog.querySelector('.setting-help-content');
+  const close = dialog.querySelector('button');
+  close.addEventListener('click', () => dialog.close());
+  form.addEventListener('click', event => {
+    const button = event.target.closest('[data-setting-help]');
+    if (!button) return;
+    const [heading, description, before, after] = settingHelp[button.dataset.settingHelp];
+    title.textContent = heading;
+    content.innerHTML = `<p>${description}</p>${before ? `
+      <div class="settings-examples">
+        <div><h3>Before</h3>${helpPreview(before)}</div>
+        <div><h3>After</h3>${helpPreview(after)}</div>
+      </div>` : ''}`;
+    dialog.showModal();
+  });
+
+  return container => {
+    for (const control of container.querySelectorAll('input, select, #refresh-comments')) {
+      const key = control.dataset.field || control.dataset.led || control.name ||
+        (control.id === 'tablet-count' ? 'tabletCount' : 'tabletComments');
+      if (!settingHelp[key] || control.closest('[hidden], .setting-with-help')) continue;
+      const anchor = control.closest('label') || control;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'setting-with-help';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'setting-help-trigger';
+      button.dataset.settingHelp = key;
+      button.setAttribute('aria-label', `Help for ${control.getAttribute('aria-label') || settingHelp[key][0]}`);
+      button.setAttribute('aria-haspopup', 'dialog');
+      button.textContent = 'i';
+      anchor.before(wrapper);
+      wrapper.append(anchor, button);
+    }
+  };
+}
+
 function options(labels, selected, first = 1) {
   return labels.map((label, index) =>
     `<option value="${index + first}"${index + first === selected ? ' selected' : ''}>${label}</option>`).join('');
@@ -177,6 +265,13 @@ export async function showSettings(app, logo) {
         <p class="settings-status" role="status">Loading settings…</p>
       </div>
     </form>
+    <dialog id="setting-help" class="setting-help-dialog" aria-labelledby="setting-help-title">
+      <header>
+        <h2 id="setting-help-title"></h2>
+        <button type="button" aria-label="Close help">×</button>
+      </header>
+      <div class="setting-help-content"></div>
+    </dialog>
     <a href="/">Back to installation controls</a>`;
 
   const form = app.querySelector('form');
@@ -187,6 +282,7 @@ export async function showSettings(app, logo) {
   const tablets = form.querySelector('#tablet-routes');
   const save = form.querySelector('button[type="submit"]');
   const status = form.querySelector('.settings-save [role="status"]');
+  const addHelpButtons = setupSettingHelp(app, form);
   let config;
   let savedCount;
 
@@ -238,6 +334,7 @@ export async function showSettings(app, logo) {
         ${id <= savedCount ? `<a href="/tablet/${id}" target="_blank" rel="noopener">/tablet/${id}</a>` : '<span class="tablet-link-pending">Link after saving</span>'}
       </div>`;
     }).join('');
+    addHelpButtons(tablets);
     updateDestinations();
   }
 
@@ -285,6 +382,7 @@ export async function showSettings(app, logo) {
     setBusy(false);
     report('');
     renderTablets();
+    addHelpButtons(form);
     manageComments(form);
   } catch {
     report('Could not load settings. Reload this page to try again.', true);

@@ -1,20 +1,42 @@
-import { commentObstacles, commentPosition, commentWidth } from './scenes.js';
+import { commentFrame, commentObstacles, commentPosition, commentWidth } from './scenes.js';
 
 function overlaps(a, b) {
   return Math.abs(a.x - b.x) < (a.width + b.width) / 2 + 0.45 &&
     Math.abs(a.y - b.y) < (a.height + b.height) / 2 + 0.42;
 }
 
-function packDense(items, scene, fixed, bottom) {
+function sideBounds(post) {
+  const halfWidth = commentWidth / 2;
+  const panelInset = halfWidth + .12;
+  const postInset = (post.width + commentWidth) / 2 + .15;
+  return {
+    sides: [[panelInset, post.x - postInset], [post.x + postInset, 100 - panelInset]],
+    top: post.y - post.height / 2,
+    bottom: post.y + post.height / 2
+  };
+}
+
+export function commentDock(scene, slot, panelHeight) {
+  const [, post] = commentObstacles(scene, panelHeight);
+  const { sides, top, bottom } = sideBounds(post);
+  const anchor = commentPosition(scene, slot);
+  const side = sides[Number(anchor.x >= post.x)];
+  const halfHeight = commentFrame(scene) / 2;
+  return {
+    x: (side[0] + side[1]) / 2,
+    y: Math.min(bottom - halfHeight, Math.max(top + halfHeight, anchor.y * panelHeight / 100)) * 100 / panelHeight
+  };
+}
+
+function packDense(items, scene, fixed, { sides, top, bottom }) {
   const placed = new Map();
-  const lanes = [16.5, 50, 83.5].map(x => ({ x, nextY: 3.2 }));
+  const lanes = sides.map(([left, right]) => ({ x: (left + right) / 2, nextY: top }));
   for (const item of items) {
     const anchor = commentPosition(scene, item.slot);
     const positions = lanes.map(lane => {
-      const jitter = (item.slot % 7 - 3) * .48;
       const position = {
-        x: lane.x + jitter,
-        y: lane.nextY + item.height / 2 + (item.slot % 4) * .16,
+        x: lane.x,
+        y: lane.nextY + item.height / 2,
         width: commentWidth,
         height: item.height
       };
@@ -25,7 +47,7 @@ function packDense(items, scene, fixed, bottom) {
       return { lane, position, score: position.y + Math.abs(anchor.x - position.x) * .08 };
     }).filter(({ position }) => position.y + position.height / 2 <= bottom);
     positions.sort((a, b) => a.score - b.score);
-    if (!positions.length) break;
+    if (!positions.length) continue;
     const { lane, position } = positions[0];
     lane.nextY = position.y + position.height / 2 + .55;
     placed.set(item.id, position);
@@ -36,11 +58,10 @@ function packDense(items, scene, fixed, bottom) {
 // Geometry is in hundredths of the panel width. Positions stay reproducible
 // across the combined wall and individual outputs.
 export function arrangeComments(items, scene, panelHeight, previous) {
-  const fixed = commentObstacles(scene, panelHeight);
-  const foreground = [fixed[0], ...fixed.slice(2)];
-  const left = commentWidth / 2 + 1.4;
-  const right = 100 - left;
-  const bottom = panelHeight - 10.8;
+  const [logo, post, ...cards] = commentObstacles(scene, panelHeight);
+  const fixed = [logo, ...cards];
+  const bounds = sideBounds(post);
+  const { sides } = bounds;
   let best = new Map();
 
   for (let attempt = 0; attempt < 52 && best.size < items.length; attempt += 1) {
@@ -51,22 +72,21 @@ export function arrangeComments(items, scene, panelHeight, previous) {
       return random / 2 ** 32;
     };
     for (const item of items) {
-      const top = item.height / 2 + 3.2;
-      const end = bottom - item.height / 2;
-      // If the side areas fill up, use the post area while protecting the
-      // logo and the original comment cards.
-      const artwork = attempt < 34 ? fixed : foreground;
-      const occupied = [...artwork, ...placed.values()];
+      const top = bounds.top + item.height / 2;
+      const end = bounds.bottom - item.height / 2;
+      if (top > end) continue;
+      const occupied = [...fixed, ...placed.values()];
       const anchor = commentPosition(scene, item.slot);
       const preferred = previous.get(item.id) ?? { x: anchor.x, y: anchor.y * panelHeight / 100 };
       let chosen;
       let cost = Infinity;
       for (let sample = 0; sample <= 190; sample += 1) {
+        const [left, right] = sides[sample % sides.length];
         const point = sample === 0 && attempt === 0
           ? preferred
           : { x: left + next() * (right - left), y: top + next() * (end - top) };
         const candidate = { ...point, width: commentWidth, height: item.height };
-        if (point.x < left || point.x > right || point.y < top || point.y > end ||
+        if (!sides.some(([min, max]) => point.x >= min && point.x <= max) || point.y < top || point.y > end ||
             occupied.some(other => overlaps(candidate, other))) continue;
         if (attempt > 0) {
           chosen = candidate;
@@ -83,13 +103,12 @@ export function arrangeComments(items, scene, panelHeight, previous) {
           if (cost === 0) break;
         }
       }
-      if (!chosen) break;
-      placed.set(item.id, chosen);
+      if (chosen) placed.set(item.id, chosen);
     }
     if (placed.size > best.size) best = placed;
   }
   if (best.size < items.length) {
-    const dense = packDense(items, scene, foreground, bottom);
+    const dense = packDense(items, scene, fixed, bounds);
     if (dense.size > best.size) return dense;
   }
   return best;
