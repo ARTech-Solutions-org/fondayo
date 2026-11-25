@@ -1,4 +1,4 @@
-import { postImage } from './scenes.js';
+import { defaultPostBorder, postImage } from './scenes.js';
 
 const ledNames = ['Left LED', 'Center LED', 'Right LED'];
 const sceneNames = Array.from({ length: 6 }, (_, index) => `Scene ${index + 1}`);
@@ -9,6 +9,8 @@ const settingHelp = {
   enabled: ['Enable LED', 'An enabled LED follows the wall rotation. Switching it off blacks out the output and cancels its queued pop-ups. Saved comments can appear again when it is enabled.', ['Enabled', 'post'], ['Disabled', 'black']],
   saver: ['LED screensaver', 'Choose the artwork this LED shows during the screensaver phase. Black when idle keeps that output black during idle playback.', ['Screensaver 1', 'saver'], ['Screensaver 2', 'saver-two']],
   limit: ['LED comment limit', 'Set the maximum number of retained tablet comments for this LED. Default uses the limit in Playback and submissions. When replacing a comment, the oldest eligible card is removed.', ['2 comments', 'post'], ['4 comments', 'more-comments']],
+  postSize: ['Post size', 'Changes the size of both post scenes on this LED. 100% is the standard size. The available range leaves room for the logo and footer.', ['75% · smaller post', 'post-small'], ['100% · standard size', 'post']],
+  postBorder: ['Post border', 'Leaves a clear strip of background around both posts on this LED. Set 0% to remove it. The percentage is measured against the LED width. Larger borders can leave less space for the post and cards.', ['0% · no clear border', 'post'], ['1.5% · clear border', 'post-clearance']],
   idleSlideTime: ['Time on screensavers', 'Controls how many seconds the screensaver phase lasts before all LEDs advance to the first group of posts.', ['Screensaver for 5 seconds'], ['Screensaver for 10 seconds']],
   idleFirstPostTime: ['Time on posts 1–3', 'Controls how long the first group of posts stays visible during idle playback before the wall moves to posts 4–6.', ['Posts 1–3 for 5 seconds'], ['Posts 1–3 for 10 seconds']],
   idleSecondPostTime: ['Time on posts 4–6', 'Controls how long the second group of posts stays visible during idle playback before the screensavers return.', ['Posts 4–6 for 5 seconds'], ['Posts 4–6 for 10 seconds']],
@@ -423,11 +425,19 @@ export async function showSettings(app, logo) {
     count.max = config.maxTablets;
     count.value = savedCount;
     const limitLabels = ['Default comment limit', ...Array.from({ length: config.maxComments }, (_, index) => `${index + 1} comments`)];
-    leds.innerHTML = config.displays.map(({ enabled, saver, limit = 0 }, index) => `
+    leds.innerHTML = config.displays.map(({ enabled, saver, limit = 0, postSize = 100, postBorder = defaultPostBorder }, index) => `
       <div class="led-choice">
         <label class="settings-toggle"><input type="checkbox" data-led="enabled" data-index="${index}" aria-label="Enable ${ledNames[index]}"${checked(enabled)}> ${ledNames[index]}</label>
         <select aria-label="${ledNames[index]} screensaver" data-led="saver" data-index="${index}">${options(saverNames, saver, 0)}</select>
         <select aria-label="${ledNames[index]} comment limit" data-led="limit" data-index="${index}">${options(limitLabels, limit, 0)}</select>
+        <label class="led-post-size">Post size
+          <span><input type="number" aria-label="${ledNames[index]} post size" data-led="postSize" data-index="${index}"
+            inputmode="numeric" min="${config.postSizeMin}" max="${config.postSizeMax[index]}" step="1" value="${postSize}" required> %</span>
+        </label>
+        <label class="led-post-size">Post border
+          <span><input type="number" aria-label="${ledNames[index]} post border" data-led="postBorder" data-index="${index}"
+            inputmode="decimal" min="0" max="${config.postBorderMax}" step="0.25" value="${postBorder}" required> %</span>
+        </label>
         <a href="/screen/${index + 1}" target="_blank" rel="noopener">Open output</a>
       </div>`).join('');
     scenes.innerHTML = sceneNames.map((name, index) => `

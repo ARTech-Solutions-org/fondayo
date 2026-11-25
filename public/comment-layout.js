@@ -1,34 +1,36 @@
-import { commentFrame, commentObstacles, commentPosition, commentWidth } from './scenes.js';
+import { commentFrame, commentObstacles, commentPosition, sideCardWidth } from './scenes.js';
 
 function overlaps(a, b) {
   return Math.abs(a.x - b.x) < (a.width + b.width) / 2 + 0.45 &&
     Math.abs(a.y - b.y) < (a.height + b.height) / 2 + 0.42;
 }
 
-function sideBounds(post) {
-  const halfWidth = commentWidth / 2;
+function sideBounds(post, cardWidth, border) {
+  const halfWidth = cardWidth / 2;
   const panelInset = halfWidth + .12;
-  const postInset = (post.width + commentWidth) / 2 + .15;
+  const postInset = (post.width + cardWidth) / 2 + border + .15;
   return {
+    cardWidth,
     sides: [[panelInset, post.x - postInset], [post.x + postInset, 100 - panelInset]],
     top: post.y - post.height / 2,
     bottom: post.y + post.height / 2
   };
 }
 
-export function commentDock(scene, slot, panelHeight) {
-  const [, post] = commentObstacles(scene, panelHeight);
-  const { sides, top, bottom } = sideBounds(post);
+export function commentDock(scene, slot, panelHeight, postSize = 100, border = 0) {
+  const [, post] = commentObstacles(scene, panelHeight, postSize, border);
+  const cardWidth = sideCardWidth(post.width, border);
+  const { sides, top, bottom } = sideBounds(post, cardWidth, border);
   const anchor = commentPosition(scene, slot);
   const side = sides[Number(anchor.x >= post.x)];
-  const halfHeight = commentFrame(scene) / 2;
+  const halfHeight = commentFrame(scene, cardWidth) / 2;
   return {
     x: (side[0] + side[1]) / 2,
     y: Math.min(bottom - halfHeight, Math.max(top + halfHeight, anchor.y * panelHeight / 100)) * 100 / panelHeight
   };
 }
 
-function packDense(items, scene, fixed, { sides, top, bottom }) {
+function packDense(items, scene, fixed, { cardWidth, sides, top, bottom }) {
   const placed = new Map();
   const lanes = sides.map(([left, right]) => ({ x: (left + right) / 2, nextY: top }));
   for (const item of items) {
@@ -37,7 +39,7 @@ function packDense(items, scene, fixed, { sides, top, bottom }) {
       const position = {
         x: lane.x,
         y: lane.nextY + item.height / 2,
-        width: commentWidth,
+        width: cardWidth,
         height: item.height
       };
       let obstruction;
@@ -57,11 +59,11 @@ function packDense(items, scene, fixed, { sides, top, bottom }) {
 
 // Geometry is in hundredths of the panel width. Positions stay reproducible
 // across the combined wall and individual outputs.
-export function arrangeComments(items, scene, panelHeight, previous) {
-  const [logo, post, ...cards] = commentObstacles(scene, panelHeight);
+export function arrangeComments(items, scene, panelHeight, previous, postSize = 100, border = 0) {
+  const [logo, post, ...cards] = commentObstacles(scene, panelHeight, postSize, border);
   const fixed = [logo, ...cards];
-  const bounds = sideBounds(post);
-  const { sides } = bounds;
+  const bounds = sideBounds(post, sideCardWidth(post.width, border), border);
+  const { cardWidth, sides } = bounds;
   let best = new Map();
 
   for (let attempt = 0; attempt < 52 && best.size < items.length; attempt += 1) {
@@ -85,7 +87,7 @@ export function arrangeComments(items, scene, panelHeight, previous) {
         const point = sample === 0 && attempt === 0
           ? preferred
           : { x: left + next() * (right - left), y: top + next() * (end - top) };
-        const candidate = { ...point, width: commentWidth, height: item.height };
+        const candidate = { ...point, width: cardWidth, height: item.height };
         if (!sides.some(([min, max]) => point.x >= min && point.x <= max) || point.y < top || point.y > end ||
             occupied.some(other => overlaps(candidate, other))) continue;
         if (attempt > 0) {

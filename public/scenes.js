@@ -48,21 +48,47 @@ export function commentPosition(scene, slot) {
 }
 
 export const commentWidth = commentArtworkWidth / 9.6;
+export const defaultPostBorder = 1.5;
 const frameSizes = [[500, 112], [503, 113], [497, 106], [500, 112], [497, 106], [497, 106]];
 
-export function commentFrame(scene) {
+export function commentFrame(scene, cardWidth = commentWidth) {
   const [width, height] = frameSizes[scene - 1];
-  return height * commentWidth / width;
+  return height * cardWidth / width;
 }
 
 const postAspectHeights = [604 / 430, 603 / 430, 605 / 430, 606 / 430, 607 / 430, 614 / 441];
 
-export function commentObstacles(scene, height) {
+export function postWidth(size = 100, panelHeight = 100, border = 0) {
+  const requested = postArtworkWidth / 9.6 * size / 100;
+  if (!border) return requested;
+  const center = panelHeight * postArtworkY / 540;
+  const logoBottom = panelHeight * 68 / 540 + 7.55 / 2;
+  const footerTop = panelHeight - 10.3;
+  const available = Math.min(center - logoBottom, footerTop - center);
+  return Math.min(requested, 2 * (available - border) / Math.max(...postAspectHeights));
+}
+
+export function sideCardWidth(width, border) {
+  return Math.min(commentWidth, (100 - width) / 2 - border - .35);
+}
+
+export function storyCardX(x, width, border) {
+  if (!border) return x;
+  const inset = sideCardWidth(width, border) / 2;
+  const maxLeft = (100 - width) / 2 - border - inset - .15;
+  const minLeft = inset + .12;
+  return x < 50 ? Math.max(minLeft, Math.min(maxLeft, x))
+    : Math.max(100 - maxLeft, Math.min(100 - minLeft, x));
+}
+
+export function commentObstacles(scene, height, size = 100, border = 0) {
   const { cards } = postLayouts[scene - 1];
+  const width = postWidth(size, height, border);
+  const storyWidth = border ? sideCardWidth(width, border) : commentWidth;
   return [
     { x: 50, y: height * 68 / 540, width: 14.4, height: 7.55 },
-    { x: postArtworkX / 9.6, y: height * postArtworkY / 540, width: postArtworkWidth / 9.6, height: postArtworkWidth / 9.6 * postAspectHeights[scene - 1] },
-    ...cards.map(([, x, y]) => ({ x: x / 9.6, y: height * y / 540, width: commentWidth, height: commentWidth * .234 }))
+    { x: postArtworkX / 9.6, y: height * postArtworkY / 540, width, height: width * postAspectHeights[scene - 1] },
+    ...cards.map(([, x, y]) => ({ x: storyCardX(x / 9.6, width, border), y: height * y / 540, width: storyWidth, height: storyWidth * .234 }))
   ];
 }
 
@@ -121,18 +147,21 @@ export function makePanel(index) {
     story.className = 'story-layer';
     story.hidden = true;
     scene.dataset.scene = number;
+    scene.style.setProperty('--post-aspect-height', postAspectHeights[offset]);
+    const decorations = document.createElement('div');
+    decorations.className = 'post-decorations';
     const folder = `${source}/post1/screen${number}`;
     if (number === 2 || number === 5) {
-      scene.append(artwork(asset(folder, number === 2 ? 79 : 177), -8, 540, 244, 'edge edge-lower-left'));
+      decorations.append(artwork(asset(folder, number === 2 ? 79 : 177), -8, 540, 244, 'edge edge-lower-left'));
     } else {
-      scene.append(
+      decorations.append(
         artwork(asset(common, 28), 0, 0, 131, 'edge edge-top'),
         artwork(asset(common, 27), 960, 540, 127, 'edge edge-bottom'),
       );
     }
     const x = postArtworkX;
     const y = postArtworkY;
-    scene.append(artwork(postImage(number), x, y, postArtworkWidth, 'post-body', 'Campaign social post'));
+    scene.append(decorations, artwork(postImage(number), x, y, postArtworkWidth, 'post-body', 'Campaign social post'));
     const leftCards = layout.cards.filter(([, cardX]) => cardX < x);
     const rightCards = layout.cards.filter(([, cardX]) => cardX >= x);
     // Feather the hidden center just beyond the settled card edges.
@@ -142,6 +171,7 @@ export function makePanel(index) {
       cards.sort((a, b) => Math.abs(a[2] - y) - Math.abs(b[2] - y));
       for (const [order, [id, cardX, cardY]] of cards.entries()) {
         const card = artwork(asset(folder, id), cardX, cardY, commentArtworkWidth, 'story-card');
+        card.dataset.referenceX = cardX / 9.6;
         card.style.setProperty('--story-from-x', `${(x - cardX) / 9.6}cqw`);
         card.style.setProperty('--story-from-y', `calc(var(--panel-height) * ${(y - cardY) * 0.48 / 540})`);
         card.style.setProperty('--story-delay', `${order * 105 + side * 32}ms`);
@@ -162,8 +192,6 @@ export function makePanel(index) {
     const compactStage = document.createElement('div');
     compactStage.className = 'compact-stage';
     compactStage.hidden = true;
-    compactStage.style.setProperty('--comment-width', `${commentWidth}cqw`);
-    compactStage.style.setProperty('--post-half-width', `${postArtworkWidth / 19.2}cqw`);
     compactStage.setAttribute('aria-label', 'Recent audience comments');
     return { compactStage, compactCards: new Map() };
   });

@@ -23,6 +23,8 @@ All outputs share one playback timeline. In idle, the left LED cycles through sc
 
 Use **LED outputs** to enable or disable each physical display, select its screensaver or black idle, and override the default comment limit. Disabling an LED blacks out its browser output and stops its queued pop-ups. Already compact comments reappear when the LED is enabled. **Accept new comments** pauses submissions across all tablets.
 
+Set **Post size** and **Post border** for each LED. The border reserves a strip of visible background around the post, clear of cards and decorations. Set it to 0% to remove that strip. A wide border can reduce the space available for the post and cards while preserving the logo and footer.
+
 Use **Idle rotation** to set how long the screensavers and each group of posts appear on all three LEDs. The crossfade starts at the boundary between slides and blends the artwork while the logos and footer remain in place.
 
 Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit. A fixed LED keeps its comments on the same output and replaces the oldest there when the LED is full. The other routing modes can use any enabled LED with room. If all available LEDs are full, the new comment replaces the oldest there when it shrinks. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original and saved tablet comments slide out from behind the post when their scene appears.
@@ -35,7 +37,7 @@ Settings and retained comments persist locally across server restarts.
 
 ## Tablet fullscreen
 
-Tap the Foundayo logo at the upper left of a tablet to enter fullscreen. Tap it again to exit. Fullscreen requires a browser that supports the Fullscreen API for a web page.
+Tap the Foundayo logo to toggle fullscreen in browsers that support it. On iPad, if the browser blocks fullscreen, open the numbered tablet link in Safari and choose **Share → Add to Home Screen**. Turn on **Open as Web App** if Safari offers it, then launch the tablet from its new Home Screen icon. Each icon keeps the tablet link it was created from.
 
 ## Deploy to Vercel
 

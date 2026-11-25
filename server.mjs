@@ -90,6 +90,7 @@ const mime = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.webmanifest': 'application/manifest+json',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.mp4': 'video/mp4',
@@ -145,6 +146,7 @@ async function serve(request, response) {
     return response.end(request.method === 'HEAD' ? undefined : cloudPage);
   }
   if (/^\/(?:app\.js|scenes\.js|comment-layout\.js|settings\.js|styles\.css|media\/post-[1-6]\.webp|media\/comment-(?:frame|heart)-[1-6]\.png|media\/person-fill-svgrepo-com\.svg)$/.test(path)) file = `public${path}`;
+  if (path === '/manifest.webmanifest') file = 'public/manifest.webmanifest';
   if (/^\/media\/settings\/[a-z-]+-(?:before|after)\.mp4$/.test(path)) file = `public${path}`;
   if (/^\/Fonts\/[\w-]+\.(otf|ttf)$/i.test(path)) file = path.slice(1);
   if (/^\/design\/design\/(?:tablet|post1\/screen[1-6]|screen sever post 1\/screen-saver[1-3])\/Asset \d+\.png$/.test(path)) {

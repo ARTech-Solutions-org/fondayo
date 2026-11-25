@@ -1,4 +1,4 @@
-import { commentFrame, makePanel, tabletAsset } from './scenes.js';
+import { commentFrame, commentWidth, defaultPostBorder, makePanel, postWidth, sideCardWidth, storyCardX, tabletAsset } from './scenes.js';
 import { arrangeComments, commentDock } from './comment-layout.js';
 import { showSettings } from './settings.js';
 
@@ -79,11 +79,12 @@ function drawCompactFrame(card, scene, extraHeight) {
   }).catch(() => frameImages.delete(scene));
 }
 
-function compactComments(panel, view, comments, scene) {
+function compactComments(panel, view, comments, scene, { postSize, postBorder, cardWidth }) {
   const width = panel.clientWidth;
-  const key = [scene, width, ...comments.map(comment => comment.id)].join('/');
+  const key = [scene, width, postSize, postBorder, ...comments.map(comment => comment.id)].join('/');
   if (view.compactLayoutKey === key) return;
   view.compactLayoutKey = key;
+  const frameHeight = commentFrame(scene, cardWidth);
   const ids = new Set(comments.map(comment => comment.id));
   for (const [id, card] of view.compactCards) {
     if (ids.has(id)) continue;
@@ -118,8 +119,8 @@ function compactComments(panel, view, comments, scene) {
       view.compactCards.set(comment.id, card);
       view.compactStage.append(card);
     }
+    card.style.setProperty('--frame-height', `${frameHeight}cqw`);
     if (card.dataset.layout !== String(scene)) {
-      card.style.setProperty('--frame-height', `${commentFrame(scene)}cqw`);
       card.querySelector('.comment-heart img').src = `/media/comment-heart-${scene}.png`;
       card.dataset.layout = scene;
     }
@@ -139,7 +140,7 @@ function compactComments(panel, view, comments, scene) {
     drawCompactFrame(card, scene, extraHeight);
     return { id, slot: slot ?? 0, height: card.getBoundingClientRect().height * 100 / width };
   });
-  view.compactPositions = arrangeComments(items, scene, panelHeight, view.compactPositions ?? new Map());
+  view.compactPositions = arrangeComments(items, scene, panelHeight, view.compactPositions ?? new Map(), postSize, postBorder);
   for (const [id, card] of view.compactCards) {
     const position = view.compactPositions.get(id);
     card.style.visibility = position ? 'visible' : 'hidden';
@@ -180,7 +181,7 @@ function showLive(view, comment, now, scene) {
   moment.style.setProperty('--elapsed', `-${Math.max(0, now - comment.start)}ms`);
   moment.style.setProperty('--duration', `${(comment.compactAt ?? comment.end) - comment.start}ms`);
   const panelHeight = view.panel.clientWidth ? view.panel.clientHeight * 100 / view.panel.clientWidth : 100;
-  const dock = commentDock(scene, comment.slot ?? 0, panelHeight);
+  const dock = commentDock(scene, comment.slot ?? 0, panelHeight, view.postSize, view.postBorder);
   moment.style.setProperty('--dock-x', `${dock.x - 50}%`);
   moment.style.setProperty('--dock-y', `${dock.y - 50}%`);
   moment.style.setProperty('--entry-x', `${(1 - comment.panel) * 25}cqw`);
@@ -225,6 +226,26 @@ function switchLayer(view, key, next, duration, elapsed) {
   }
   view.fades[key] = complete;
   Promise.all(animations.map(animation => animation.finished)).then(complete, () => {});
+}
+
+function setPostGeometry(view, postSize, postBorder) {
+  if (view.postSize === postSize && view.postBorder === postBorder) return;
+  const width = postWidth(postSize, view.index === 1 ? 600 / 7 : 100, postBorder);
+  const cardWidth = sideCardWidth(width, postBorder);
+  Object.assign(view, { postSize, postBorder, cardWidth });
+  view.panel.classList.toggle('has-post-border', postBorder > 0);
+  view.panel.style.setProperty('--post-width', `${width}cqw`);
+  view.panel.style.setProperty('--post-half-width', `${width / 2}cqw`);
+  view.panel.style.setProperty('--post-border', `${postBorder}cqw`);
+  view.panel.style.setProperty('--comment-width', `${cardWidth}cqw`);
+  view.panel.style.setProperty('--compact-unit', `${cardWidth / commentWidth}cqw`);
+  for (const story of view.stories) {
+    for (const card of story.children) {
+      const x = storyCardX(Number(card.dataset.referenceX), width, postBorder);
+      card.style.setProperty('--x', `${x}%`);
+      card.style.setProperty('--story-from-x', `${50 - x}cqw`);
+    }
+  }
 }
 
 function wall() {
@@ -307,7 +328,8 @@ function wall() {
     notice.hidden = disconnectedAt === null || elapsed - disconnectedAt < 7000 ||
       views.every(view => !displays[view.index].enabled);
     for (const view of views) {
-      const { enabled, saver, limit } = displays[view.index];
+      const { enabled, saver, limit, postSize = 100, postBorder = defaultPostBorder } = displays[view.index];
+      setPostGeometry(view, postSize, postBorder);
       const active = enabled ? comments.filter(entry => entry.panel === view.index && entry.start <= now) : [];
       const comment = active.find(entry => (entry.compactAt ?? entry.end) > now);
       const group = liveGroup ?? (phase === 0 ? null : phase - 1);
@@ -328,7 +350,7 @@ function wall() {
       switchLayer(view, 'story', story, sceneFade, phaseElapsed);
       switchLayer(view, 'compact', layer?.compactStage ?? null, sceneFade, phaseElapsed);
       if (layer) {
-        compactComments(view.panel, layer, compact, post);
+        compactComments(view.panel, layer, compact, post, view);
         if (entering && app.classList.contains('animate-story-cards')) {
           revealCompactComments(layer, view.panel, idle ? phaseElapsed : 0);
         }
@@ -365,6 +387,78 @@ function launch(comment, anchor) {
 function requestId() {
   const random = crypto.getRandomValues(new Uint8Array(16));
   return Array.from(random, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function setupTabletFullscreen(logo, status) {
+  const root = document.documentElement;
+  const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement || document.webkitCurrentFullScreenElement;
+  const standaloneMode = matchMedia('(display-mode: standalone)');
+  const installed = () => navigator.standalone === true || standaloneMode.matches;
+  const appleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
+  let changing = false;
+  let timeout;
+
+  function sync() {
+    const native = Boolean(fullscreenElement());
+    const standalone = installed();
+    logo.setAttribute('aria-pressed', String(native || standalone));
+    logo.setAttribute('aria-label', native ? 'Exit fullscreen' : standalone ? 'Home Screen app' : 'Enter fullscreen');
+    status.hidden = true;
+  }
+
+  function finish() {
+    clearTimeout(timeout);
+    changing = false;
+    sync();
+  }
+
+  function show(message) {
+    status.textContent = message;
+    status.hidden = false;
+  }
+
+  function unavailable(exiting) {
+    finish();
+    if (exiting) show('Use your browser’s fullscreen controls to exit.');
+    else if (appleMobile) show('In Safari, tap Share, then Add to Home Screen. If offered, turn on Open as Web App. Open this tablet from its new Home Screen icon.');
+    else show('Open this tablet link directly in your browser and tap the logo to enter fullscreen.');
+  }
+
+  for (const event of ['fullscreenchange', 'webkitfullscreenchange']) {
+    document.addEventListener(event, finish);
+  }
+  for (const event of ['fullscreenerror', 'webkitfullscreenerror']) {
+    document.addEventListener(event, () => {
+      if (changing) unavailable(Boolean(fullscreenElement()));
+    });
+  }
+  standaloneMode.addEventListener?.('change', sync);
+  sync();
+
+  logo.addEventListener('click', async () => {
+    if (changing) return;
+    const exiting = Boolean(fullscreenElement());
+    if (!exiting && installed()) {
+      show('This tablet is already open as a Home Screen app.');
+      return;
+    }
+    const request = document.fullscreenEnabled === false ? null : root.requestFullscreen;
+    const webkitRequest = document.webkitFullscreenEnabled === false ? null : root.webkitRequestFullscreen;
+    const exit = document.fullscreenElement ? document.exitFullscreen ?? document.webkitExitFullscreen
+      : document.webkitExitFullscreen ?? document.exitFullscreen;
+    const action = exiting ? exit : request ?? webkitRequest;
+    if (!action) return unavailable(exiting);
+
+    changing = true;
+    try {
+      await action.call(exiting ? document : root);
+      if (!changing || Boolean(fullscreenElement()) !== exiting) finish();
+      else timeout = setTimeout(() => unavailable(exiting), 1000);
+    } catch {
+      unavailable(exiting);
+    }
+  });
 }
 
 function tablet(tabletId) {
@@ -407,32 +501,7 @@ function tablet(tabletId) {
       </div>
     </section>`;
 
-  const logoButton = app.querySelector('.tablet-logo');
-  const fullscreenStatus = app.querySelector('.tablet-fullscreen-status');
-  const root = document.documentElement;
-  const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
-  function showFullscreenState() {
-    const active = Boolean(fullscreenElement());
-    logoButton.setAttribute('aria-pressed', String(active));
-    logoButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
-    if (active) fullscreenStatus.hidden = true;
-  }
-  for (const event of ['fullscreenchange', 'webkitfullscreenchange']) {
-    document.addEventListener(event, showFullscreenState);
-  }
-  logoButton.addEventListener('click', async () => {
-    try {
-      if (fullscreenElement()) {
-        await (document.exitFullscreen ?? document.webkitExitFullscreen).call(document);
-      } else {
-        await (root.requestFullscreen ?? root.webkitRequestFullscreen).call(root);
-      }
-      showFullscreenState();
-    } catch {
-      fullscreenStatus.textContent = 'Fullscreen is unavailable in this browser.';
-      fullscreenStatus.hidden = false;
-    }
-  });
+  setupTabletFullscreen(app.querySelector('.tablet-logo'), app.querySelector('.tablet-fullscreen-status'));
 
   const form = app.querySelector('form');
   const button = form.querySelector('button');
