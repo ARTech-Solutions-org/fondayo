@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/:operation(settings|comments|writing|state)", "destination": "/api/wall?operation=:operation" },
+    { "source": "/tablet", "destination": "/index.html" },
+    { "source": "/tablet/:id", "destination": "/index.html" },
+    { "source": "/wall", "destination": "/index.html" },
+    { "source": "/screen/:id([1-3])", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" }
+  ]
+}

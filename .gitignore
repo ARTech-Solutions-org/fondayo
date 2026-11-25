@@ -1,0 +1,18 @@
+# Dependencies and generated builds
+node_modules/
+/dist/
+/.vercel/
+
+# Connection strings and local environment settings
+.env*
+
+# Local wall settings and retained comments
+/.display-settings.*
+/.display-comments.*
+/.fondayo-state.*
+
+# Package-manager logs and OS metadata
+npm-debug.log*
+Thumbs.db
+Desktop.ini
+.DS_Store
