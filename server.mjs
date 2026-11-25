@@ -92,6 +92,7 @@ const mime = {
   '.js': 'text/javascript; charset=utf-8',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
   '.webp': 'image/webp',
   '.otf': 'font/otf',
   '.ttf': 'font/ttf'
@@ -144,6 +145,7 @@ async function serve(request, response) {
     return response.end(request.method === 'HEAD' ? undefined : cloudPage);
   }
   if (/^\/(?:app\.js|scenes\.js|comment-layout\.js|settings\.js|styles\.css|media\/post-[1-6]\.webp|media\/comment-(?:frame|heart)-[1-6]\.png|media\/person-fill-svgrepo-com\.svg)$/.test(path)) file = `public${path}`;
+  if (/^\/media\/settings\/[a-z-]+-(?:before|after)\.mp4$/.test(path)) file = `public${path}`;
   if (/^\/Fonts\/[\w-]+\.(otf|ttf)$/i.test(path)) file = path.slice(1);
   if (/^\/design\/design\/(?:tablet|post1\/screen[1-6]|screen sever post 1\/screen-saver[1-3])\/Asset \d+\.png$/.test(path)) {
     file = path.slice(1);
@@ -157,14 +159,34 @@ async function serve(request, response) {
     if (error.code === 'ENOENT') return response.writeHead(404).end('File not found');
     throw error;
   }
-  response.writeHead(200, {
+  const video = extname(file) === '.mp4';
+  const range = video && /^bytes=(\d*)-(\d*)$/.exec(request.headers.range ?? '');
+  let start = 0;
+  let end = size - 1;
+  const headers = {
     'Content-Type': mime[extname(file).toLowerCase()],
-    'Content-Length': size,
-    'Cache-Control': /\.(?:png|webp|otf|ttf)$/i.test(file) ? 'public, max-age=3600' : 'no-cache',
+    'Cache-Control': /\.(?:png|webp|mp4|otf|ttf)$/i.test(file) ? 'public, max-age=3600' : 'no-cache',
     'X-Content-Type-Options': 'nosniff'
-  });
+  };
+  if (video) headers['Accept-Ranges'] = 'bytes';
+  let status = 200;
+  if (range && (range[1] || range[2])) {
+    if (range[1]) {
+      start = Number(range[1]);
+      if (range[2]) end = Math.min(end, Number(range[2]));
+    } else {
+      start = Math.max(0, size - Number(range[2]));
+    }
+    if (start > end) {
+      return response.writeHead(416, { ...headers, 'Content-Range': `bytes */${size}` }).end();
+    }
+    status = 206;
+    headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+  }
+  headers['Content-Length'] = status === 206 ? end - start + 1 : size;
+  response.writeHead(status, headers);
   if (request.method === 'HEAD') return response.end();
-  const stream = createReadStream(url);
+  const stream = createReadStream(url, status === 206 ? { start, end } : undefined);
   stream.on('error', () => response.destroy());
   response.on('close', () => stream.destroy());
   stream.pipe(response);

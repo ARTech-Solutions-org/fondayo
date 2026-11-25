@@ -150,6 +150,22 @@ function compactComments(panel, view, comments, scene) {
   }
 }
 
+function revealCompactComments(layer, panel, elapsed) {
+  const height = panel.clientHeight * 100 / panel.clientWidth;
+  const order = [0, 0];
+  const entries = [...layer.compactPositions].sort(([, a], [, b]) =>
+    Math.abs(a.y - height / 2) - Math.abs(b.y - height / 2));
+  for (const [id, { x, y }] of entries) {
+    const card = layer.compactCards.get(id);
+    const side = Number(x >= 50);
+    const delay = order[side]++ * 105 + side * 32;
+    card.style.setProperty('--story-from-x', `${50 - x}cqw`);
+    card.style.setProperty('--story-from-y', `calc(var(--panel-height) * ${(.5 - y / height) * .48})`);
+    card.style.setProperty('--story-delay', `${delay - elapsed}ms`);
+    card.classList.add('is-revealing');
+  }
+}
+
 function showLive(view, comment, now, scene) {
   const id = comment?.id ?? null;
   if (view.comment === id) return;
@@ -194,13 +210,9 @@ function switchLayer(view, key, next, duration, elapsed) {
     return;
   }
   const easing = 'cubic-bezier(.45, 0, .55, 1)';
-  // Fade saved cards through zero on post-to-post transitions so both copies never show together.
-  const through = key === 'compact' && previous && next;
   const animations = [
-    previous?.animate(through ? [{ opacity: 1 }, { opacity: 0, offset: .5 }, { opacity: 0 }]
-      : [{ opacity: 1 }, { opacity: 0 }], { duration, easing, fill: 'both' }),
-    next?.animate(through ? [{ opacity: 0 }, { opacity: 0, offset: .5 }, { opacity: 1 }]
-      : [{ opacity: 0 }, { opacity: 1 }], { duration, easing, fill: 'both' })
+    previous?.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing, fill: 'both' }),
+    next?.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing, fill: 'both' })
   ].filter(Boolean);
   for (const animation of animations) {
     animation.startTime = document.timeline.currentTime - elapsed;
@@ -236,6 +248,11 @@ function wall() {
   let rotation = { since: serverTime, slidesMs: [8000, 8000, 8000], fadeMs: 800, group: null, posts: [[1, 2, 3], [4, 5, 6]] };
   let synchronized = false;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  function finishReveal(event) {
+    if (event.animationName === 'story-glide') event.target.classList.remove('is-revealing');
+  }
+  app.addEventListener('animationend', finishReveal);
+  app.addEventListener('animationcancel', finishReveal);
   let disconnectedAt = receivedAt;
   function receive(update, latency = 0) {
     serverTime = update.now + latency;
@@ -306,20 +323,14 @@ function wall() {
       const story = post ? view.stories[post - 1] : null;
       const sceneFade = enabled && scene ? fade : 0;
       const layer = view.compactLayers[post - 1];
-      const entering = layer && layer.compactStage !== view.compact && sceneFade > phaseElapsed;
+      const entering = layer && layer.compactStage !== view.compact && synchronized && !reducedMotion.matches;
       switchLayer(view, 'scene', scene, sceneFade, phaseElapsed);
       switchLayer(view, 'story', story, sceneFade, phaseElapsed);
       switchLayer(view, 'compact', layer?.compactStage ?? null, sceneFade, phaseElapsed);
       if (layer) {
         compactComments(view.panel, layer, compact, post);
         if (entering && app.classList.contains('animate-story-cards')) {
-          for (const id of layer.compactPositions.keys()) {
-            const animation = layer.compactCards.get(id).animate([
-              { transform: 'scale(.94)' },
-              { transform: 'none' }
-            ], { duration: sceneFade, easing: 'cubic-bezier(.22,.75,.25,1)' });
-            animation.startTime = document.timeline.currentTime - phaseElapsed;
-          }
+          revealCompactComments(layer, view.panel, idle ? phaseElapsed : 0);
         }
       }
       showLive(view, post && comment?.scene === post ? comment : null, now, post);

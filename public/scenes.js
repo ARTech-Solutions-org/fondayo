@@ -163,6 +163,7 @@ export function makePanel(index) {
     compactStage.className = 'compact-stage';
     compactStage.hidden = true;
     compactStage.style.setProperty('--comment-width', `${commentWidth}cqw`);
+    compactStage.style.setProperty('--post-half-width', `${postArtworkWidth / 19.2}cqw`);
     compactStage.setAttribute('aria-label', 'Recent audience comments');
     return { compactStage, compactCards: new Map() };
   });
