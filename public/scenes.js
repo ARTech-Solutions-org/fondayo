@@ -29,12 +29,35 @@ const common = `${source}/screen%20sever%20post%201/screen-saver1`;
 const asset = (folder, number) => `${folder}/Asset%20${number}.png`;
 const postAssets = [
   { frame: 64, width: 429, height: 602 },
-  { frame: 74, width: 429, height: 602, photo: 73, photoRect: [18, 106, 395, 326] },
-  { frame: 147, width: 441, height: 615, photo: 140, photoRect: [20, 109, 395, 326] },
+  { frame: 74, width: 429, height: 602, photo: { id: 73, width: 411, height: 337, crop: [9, 11, 391, 323] }, photoRect: [18, 106, 395, 326] },
+  { frame: 147, width: 441, height: 615, photo: { id: 140, width: 408, height: 334, crop: [10, 10, 391, 321] }, photoRect: [20, 109, 395, 326] },
   { frame: 161, width: 429, height: 602 },
-  { frame: 176, width: 440, height: 615, photo: 175, photoRect: [20, 109, 395, 326] },
+  { frame: 176, width: 440, height: 615, photo: { id: 175, width: 411, height: 336, crop: [2, 11, 400, 322] }, photoRect: [20, 109, 395, 326] },
   { frame: 20, width: 441, height: 614 }
 ];
+
+function postPhotoWindow(folder, photo, x, y, width, height, postWidth, postHeight) {
+  const window = document.createElement('div');
+  window.className = 'post-photo-window';
+  window.style.left = `${100 * x / postWidth}%`;
+  window.style.top = `${100 * y / postHeight}%`;
+  window.style.width = `${100 * width / postWidth}%`;
+  window.style.height = `${100 * height / postHeight}%`;
+
+  // The separate exports have transparent pixels at the edges. Fit only the opaque crop.
+  const [cropX, cropY, cropWidth, cropHeight] = photo.crop;
+  const scale = Math.max(width / cropWidth, height / cropHeight);
+  const image = document.createElement('img');
+  image.src = asset(folder, photo.id);
+  image.alt = '';
+  image.draggable = false;
+  image.style.left = `${100 * ((width - cropWidth * scale) / 2 - cropX * scale) / width}%`;
+  image.style.top = `${100 * ((height - cropHeight * scale) / 2 - cropY * scale) / height}%`;
+  image.style.width = `${100 * photo.width * scale / width}%`;
+  image.style.height = `${100 * photo.height * scale / height}%`;
+  window.append(image);
+  return window;
+}
 
 export function postArtwork(scene, className, label = '') {
   const { frame, width, height, photo, photoRect } = postAssets[scene - 1];
@@ -62,16 +85,8 @@ export function postArtwork(scene, className, label = '') {
     frameImage.style.setProperty('--photo-window-top', `${100 * (y - openingMargin) / height}%`);
     frameImage.style.setProperty('--photo-window-right', `${100 * (x + photoWidth + openingMargin) / width}%`);
     frameImage.style.setProperty('--photo-window-bottom', `${100 * (y + photoHeight + openingMargin) / height}%`);
-    const image = document.createElement('img');
-    image.className = 'post-photo';
-    image.src = asset(folder, photo);
-    image.alt = '';
-    image.draggable = false;
-    image.style.left = `${100 * (x - photoBleed) / width}%`;
-    image.style.top = `${100 * (y - photoBleed) / height}%`;
-    image.style.width = `${100 * (photoWidth + 2 * photoBleed) / width}%`;
-    image.style.height = `${100 * (photoHeight + 2 * photoBleed) / height}%`;
-    post.append(image);
+    post.append(postPhotoWindow(folder, photo, x - photoBleed, y - photoBleed,
+      photoWidth + 2 * photoBleed, photoHeight + 2 * photoBleed, width, height));
   }
   post.append(frameImage);
   return post;

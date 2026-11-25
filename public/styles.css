@@ -141,7 +141,8 @@ button, input, textarea { font: inherit; }
 .scene-choice select { width: 100%; }
 .post-artwork { position: relative; }
 .post-artwork > img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.post-artwork .post-photo { object-fit: cover; }
+.post-photo-window { position: absolute; overflow: hidden; }
+.post-photo-window > img { position: absolute; display: block; }
 .post-frame-with-photo-window {
   mask-image:
     linear-gradient(to right, #000 var(--photo-window-left), transparent var(--photo-window-left),
