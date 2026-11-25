@@ -8,7 +8,7 @@ const checked = value => value ? ' checked' : '';
 const settingHelp = {
   enabled: ['Enable LED', 'An enabled LED follows the wall rotation. Switching it off blacks out the output and cancels its queued pop-ups. Saved comments can appear again when it is enabled.', ['Enabled', 'post'], ['Disabled', 'black']],
   saver: ['LED screensaver', 'Choose the artwork this LED shows during the screensaver phase. Black when idle keeps that output black during idle playback.', ['Screensaver 1', 'saver'], ['Screensaver 2', 'saver-two']],
-  limit: ['LED comment limit', 'Set the maximum number of retained tablet comments for this LED. Default uses the limit in Playback and submissions. When replacing a comment, the oldest eligible card is removed.', ['2 comments', 'post'], ['4 comments', 'more-comments']],
+  sceneLimits: ['Scene comment limit', 'Set the maximum number of retained tablet comments for this scene. Default uses the limit in Playback and submissions. When a comment replaces an older one, it replaces a card on the same scene.', ['2 comments', 'post'], ['4 comments', 'more-comments']],
   postSize: ['Post size', 'Changes the size of both post scenes on this LED. 100% is the standard size. The available range leaves room for the logo and footer.', ['75% · smaller post', 'post-small'], ['100% · standard size', 'post']],
   postBorder: ['Post border', 'Leaves a clear strip of background around both posts on this LED. Set 0% to remove it. The percentage is measured against the LED width. Larger borders can leave less space for the post and cards.', ['0% · no clear border', 'post'], ['1.5% · clear border', 'post-clearance']],
   idleSlideTime: ['Time on screensavers', 'Controls how many seconds the screensaver phase lasts before all LEDs advance to the first group of posts.', ['Screensaver for 5 seconds'], ['Screensaver for 10 seconds']],
@@ -25,7 +25,7 @@ const settingHelp = {
   writingTimeout: ['Return after no typing', 'A draft holds the wall on the post group while the visitor is typing. These examples play at 5× speed to show how an inactive draft expires.', ['Stops holding after 15 seconds'], ['Stops holding after 45 seconds']],
   spotlight: ['Large comment time', 'Sets how long the new comment remains in its large pop-up before it shrinks beside its post.', ['Large for 2 seconds'], ['Large for 5 seconds']],
   duration: ['Hold post group after shrinking', 'The countdown starts when the comment shrinks. It controls how long the wall holds the post group before it can return to idle playback.', ['Hold the post for 5 seconds'], ['Hold the post for 10 seconds']],
-  commentLimit: ['Default small-comment limit per LED', 'Sets the retention limit for each LED using Default comment limit. An individual LED can override it. If the artwork leaves less space, the newest cards have display priority.', ['Default limit of 2', 'post'], ['Default limit of 4', 'more-comments']],
+  commentLimit: ['Default small-comment limit per scene', 'Sets the retention limit for each scene using Default comment limit. Individual scenes can override it. If the artwork leaves less space, the newest cards have display priority.', ['Default limit of 2', 'post'], ['Default limit of 4', 'more-comments']],
   leadTime: ['Delay before first appearance', 'Adds a delay between accepting a tablet submission and showing its first pop-up. Another comment already queued on that LED can add to the wait.', ['0 seconds of added delay'], ['2 seconds before the pop-up']],
   gap: ['Gap between comments on one LED', 'Sets the minimum pause between a pop-up shrinking and the next pop-up starting on the same LED.', ['0 seconds between pop-ups'], ['1 second between pop-ups']],
   wallMotion: ['LED comment entrance', 'Impact adds a burst and a strong pop. Gentle rise uses a short lift. Instant shows the card at full size immediately.', ['Instant entrance'], ['Impact entrance']],
@@ -61,7 +61,7 @@ function helpPreview([caption, style], video) {
   const saverPath = `/design/design/screen%20sever%20post%201/screen-saver${saverNumber}/Asset%20`;
   const artwork = saver
     ? `<img class="preview-background" src="${saverPath}${saverBackground}.png" alt=""><img class="preview-title" src="${saverPath}${saverTitle}.png" alt="">`
-    : `<div class="preview-art"><img class="preview-post" src="${postImage(post)}" alt=""><div class="preview-cards"><i></i><i></i><i></i><i></i></div></div>`;
+    : `<div class="preview-art"><img class="preview-post" data-post-scene="${post}" src="${postImage(post)}" alt=""><div class="preview-cards"><i></i><i></i><i></i><i></i></div></div>`;
   return `<figure><div class="settings-example ${style}" aria-hidden="true">
     ${style === 'black' ? '' : artwork}
   </div><figcaption>${caption}</figcaption></figure>`;
@@ -290,7 +290,7 @@ export async function showSettings(app, logo) {
             <label>Hold post group after shrinking
               <span><input name="duration" type="number" inputmode="decimal" required> seconds</span>
             </label>
-            <label>Default small-comment limit per LED
+            <label>Default small-comment limit per scene
               <span><input name="commentLimit" type="number" inputmode="numeric" min="1" step="1" required></span>
             </label>
             <label>Delay before first appearance
@@ -300,7 +300,7 @@ export async function showSettings(app, logo) {
               <span><input name="gap" type="number" inputmode="decimal" min="0" max="10" step="0.05" required> seconds</span>
             </label>
           </div>
-          <p>Fixed LEDs keep new comments on their selected scene. Other routing modes can use another LED with room. If there is no room on the available LEDs, the oldest eligible comment is replaced.</p>`)}
+          <p>Each scene keeps its own comments. When a new comment shrinks on a full scene, it replaces the oldest card on that scene.</p>`)}
         ${section('Animation and appearance', `
           <div class="settings-grid">
             <label>LED comment entrance
@@ -425,11 +425,10 @@ export async function showSettings(app, logo) {
     count.max = config.maxTablets;
     count.value = savedCount;
     const limitLabels = ['Default comment limit', ...Array.from({ length: config.maxComments }, (_, index) => `${index + 1} comments`)];
-    leds.innerHTML = config.displays.map(({ enabled, saver, limit = 0, postSize = 100, postBorder = defaultPostBorder }, index) => `
+    leds.innerHTML = config.displays.map(({ enabled, saver, postSize = 100, postBorder = defaultPostBorder }, index) => `
       <div class="led-choice">
         <label class="settings-toggle"><input type="checkbox" data-led="enabled" data-index="${index}" aria-label="Enable ${ledNames[index]}"${checked(enabled)}> ${ledNames[index]}</label>
         <select aria-label="${ledNames[index]} screensaver" data-led="saver" data-index="${index}">${options(saverNames, saver, 0)}</select>
-        <select aria-label="${ledNames[index]} comment limit" data-led="limit" data-index="${index}">${options(limitLabels, limit, 0)}</select>
         <label class="led-post-size">Post size
           <span><input type="number" aria-label="${ledNames[index]} post size" data-led="postSize" data-index="${index}"
             inputmode="numeric" min="${config.postSizeMin}" max="${config.postSizeMax[index]}" step="1" value="${postSize}" required> %</span>
@@ -446,6 +445,7 @@ export async function showSettings(app, logo) {
         <div>
           <label class="settings-toggle"><input type="checkbox" data-field="sceneEnabled" data-index="${index}" aria-label="Enable ${name}"${checked(config.sceneEnabled[index])}> ${name}</label>
           <select aria-label="${name} LED" data-field="panelByScene" data-index="${index}">${options(ledNames, config.panelByScene[index])}</select>
+          <select aria-label="${name} comment limit" data-field="sceneLimits" data-index="${index}">${options(limitLabels, config.sceneLimits[index], 0)}</select>
         </div>
       </div>`).join('');
     setBusy(false);
@@ -493,6 +493,7 @@ export async function showSettings(app, logo) {
       displays: config.displays,
       panelByScene: config.panelByScene,
       sceneEnabled: config.sceneEnabled,
+      sceneLimits: config.sceneLimits,
       sceneByTablet: config.sceneByTablet.slice(0, count.valueAsNumber),
       panelByTablet: config.panelByTablet.slice(0, count.valueAsNumber),
       tabletEnabled: config.tabletEnabled.slice(0, count.valueAsNumber)

@@ -265,6 +265,7 @@ function wall() {
   let receivedAt = performance.now();
   let comments = [];
   let commentLimit = 10;
+  let sceneLimits;
   let displays = [1, 2, 3].map(saver => ({ enabled: true, saver }));
   let rotation = { since: serverTime, slidesMs: [8000, 8000, 8000], fadeMs: 800, group: null, posts: [[1, 2, 3], [4, 5, 6]] };
   let synchronized = false;
@@ -280,6 +281,7 @@ function wall() {
     receivedAt = performance.now();
     comments = update.comments;
     commentLimit = update.commentLimit ?? commentLimit;
+    sceneLimits = update.sceneLimits;
     displays = update.displays ?? displays;
     rotation = update.rotation ?? rotation;
     app.classList.toggle('static-scenes', update.sceneMotion === false);
@@ -339,7 +341,7 @@ function wall() {
         post = held.scene;
       }
       const compact = active.filter(entry => entry.compactAt <= now && entry.scene === post)
-        .slice(-(limit || commentLimit));
+        .slice(-((sceneLimits?.[post - 1] ?? limit) || commentLimit));
       const scene = (enabled && (post ? view.scenes[post - 1] : view.idleScenes[saver - 1])) || null;
       view.panel.classList.toggle('is-black', scene === null);
       const story = post ? view.stories[post - 1] : null;
@@ -480,9 +482,9 @@ function tablet(tabletId) {
         <form class="comment-form">
           <span class="form-avatar" aria-hidden="true"></span>
           <div class="form-inputs">
-            <fieldset class="profiles" aria-label="Profile">
-              <label><input type="radio" name="profile" value="male"><span>Male</span></label>
-              <label><input type="radio" name="profile" value="female"><span>Female</span></label>
+            <fieldset class="profiles" aria-label="Gender (required)">
+              <label><input type="radio" name="profile" value="male" required><span>Male</span></label>
+              <label><input type="radio" name="profile" value="female" required><span>Female</span></label>
             </fieldset>
             <input name="name" type="text" aria-label="Your name" placeholder="ADD YOUR NAME" autocomplete="off" maxlength="36" required dir="auto">
             <textarea name="message" aria-label="Your comment" placeholder="Add a comment here please..." maxlength="240" rows="3" required dir="auto"></textarea>

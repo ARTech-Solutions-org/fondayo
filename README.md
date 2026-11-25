@@ -21,13 +21,13 @@ After saving, open the matching numbered URL on each physical tablet using the h
 
 All outputs share one playback timeline. In idle, the left LED cycles through screensaver 1, post 1, and post 4. The center cycles through screensaver 2, post 2, and post 5. The right cycles through screensaver 3, post 3, and post 6. The first tablet to start typing selects a group of three posts. The wall holds that group while anyone is writing and for the configured hold time after the latest comment shrinks. Every output then restarts its idle loop at the screensaver. Retained comments appear again on that LED's post slides. The individual `/screen/1`, `/screen/2`, and `/screen/3` pages share this timeline with `/wall`.
 
-Use **LED outputs** to enable or disable each physical display, select its screensaver or black idle, and override the default comment limit. Disabling an LED blacks out its browser output and stops its queued pop-ups. Already compact comments reappear when the LED is enabled. **Accept new comments** pauses submissions across all tablets.
+Use **LED outputs** to enable or disable each physical display and select its screensaver or black idle. Disabling an LED blacks out its browser output and stops its queued pop-ups. Already compact comments reappear when the LED is enabled. **Accept new comments** pauses submissions across all tablets. Visitors must select Male or Female before sending a new comment.
 
 Set **Post size** and **Post border** for each LED. The border reserves a strip of visible background around the post, clear of cards and decorations. Set it to 0% to remove that strip. A wide border can reduce the space available for the post and cards while preserving the logo and footer.
 
 Use **Idle rotation** to set how long the screensavers and each group of posts appear on all three LEDs. The crossfade starts at the boundary between slides and blends the artwork while the logos and footer remain in place.
 
-Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit. A fixed LED keeps its comments on the same output and replaces the oldest there when the LED is full. The other routing modes can use any enabled LED with room. If all available LEDs are full, the new comment replaces the oldest there when it shrinks. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original and saved tablet comments slide out from behind the post when their scene appears.
+Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit per scene. Set an individual limit under **Scenes and default comment routing**. A fixed LED keeps comments on the selected scene, and flexible routing can use another eligible scene with room. When a new comment shrinks on a full scene, it replaces that scene's oldest card. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original and saved tablet comments slide out from behind the post when their scene appears.
 
 The five original comment cards stay visible during each comment scene. Audience comments shrink into cards that use the scene's original frame, shadow, heart, width and single-line height. The frame grows with each additional line. Compact cards stay beside the post between its top and bottom edges. The latest comments get priority when fewer cards fit than the configured limit.
 
@@ -49,6 +49,8 @@ Tap the Foundayo logo to toggle fullscreen in browsers that support it. On iPad,
 `npm install` installs the deployment dependency. `npm run build` generates the static output in `dist/`, including the supplied designs and fonts. Hosted displays synchronize through the shared database; the local installation keeps its direct event stream.
 
 A new hosted database starts with the app defaults. To use the same database from the installation computer, put its connection string in `DATABASE_URL` in `.env.local` and run `npm start`. If this is the first connection to an empty wall database, the local server uses the installation's existing settings and retained comments to initialize it. Local settings, comments and environment files are excluded from uploads.
+
+To enable the independent comment archive on another Neon database, run `scripts/archive-comments.sql` in a transaction after the app has initialized `fondayo_wall`. The database copies each new tablet comment to `fondayo_comment_archive` and backfills any full comments still retained in the wall state. Removing a comment from the display leaves its archive row in place. The application reads the wall state to render the screens and has no archive endpoint.
 
 - [Vercel project configuration](https://vercel.com/docs/project-configuration/vercel-json)
 - [Neon on Vercel](https://vercel.com/marketplace/neon/neon)

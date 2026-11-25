@@ -27,9 +27,10 @@ const idleLayouts = [
 
 const common = `${source}/screen%20sever%20post%201/screen-saver1`;
 const asset = (folder, number) => `${folder}/Asset%20${number}.png`;
+const postAssets = [64, 74, 147, 161, 176, 20];
 
 export function postImage(scene) {
-  return scene === 6 ? asset(`${source}/post1/screen6`, 20) : `/media/post-${scene}.webp`;
+  return asset(`${source}/post1/screen${scene}`, postAssets[scene - 1]);
 }
 
 // Preferred scatter anchors. The placement engine adjusts them to fit the artwork.
@@ -56,7 +57,7 @@ export function commentFrame(scene, cardWidth = commentWidth) {
   return height * cardWidth / width;
 }
 
-const postAspectHeights = [604 / 430, 603 / 430, 605 / 430, 606 / 430, 607 / 430, 614 / 441];
+const postAspectHeights = [602 / 429, 602 / 429, 615 / 441, 602 / 429, 615 / 440, 614 / 441];
 
 export function postWidth(size = 100, panelHeight = 100, border = 0) {
   const requested = postArtworkWidth / 9.6 * size / 100;
@@ -161,7 +162,9 @@ export function makePanel(index) {
     }
     const x = postArtworkX;
     const y = postArtworkY;
-    scene.append(decorations, artwork(postImage(number), x, y, postArtworkWidth, 'post-body', 'Campaign social post'));
+    const post = artwork(postImage(number), x, y, postArtworkWidth, 'post-body', 'Campaign social post');
+    post.dataset.postScene = number;
+    scene.append(decorations, post);
     const leftCards = layout.cards.filter(([, cardX]) => cardX < x);
     const rightCards = layout.cards.filter(([, cardX]) => cardX >= x);
     // Feather the hidden center just beyond the settled card edges.
