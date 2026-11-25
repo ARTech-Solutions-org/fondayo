@@ -48,24 +48,32 @@ export function postArtwork(scene, className, label = '') {
     post.setAttribute('aria-label', label);
   }
 
-  const artwork = document.createElement('img');
-  artwork.src = asset(folder, frame);
-  artwork.alt = '';
-  artwork.draggable = false;
-  post.append(artwork);
+  const frameImage = document.createElement('img');
+  frameImage.src = asset(folder, frame);
+  frameImage.alt = '';
+  frameImage.draggable = false;
   if (photoRect) {
     const [x, y, photoWidth, photoHeight] = photoRect;
+    // Clear the baked photo, including its antialiased edge. Let the new photo overlap the opening underneath.
+    const openingMargin = 1;
+    const photoBleed = openingMargin + 2;
+    frameImage.className = 'post-frame-with-photo-window';
+    frameImage.style.setProperty('--photo-window-left', `${100 * (x - openingMargin) / width}%`);
+    frameImage.style.setProperty('--photo-window-top', `${100 * (y - openingMargin) / height}%`);
+    frameImage.style.setProperty('--photo-window-right', `${100 * (x + photoWidth + openingMargin) / width}%`);
+    frameImage.style.setProperty('--photo-window-bottom', `${100 * (y + photoHeight + openingMargin) / height}%`);
     const image = document.createElement('img');
     image.className = 'post-photo';
     image.src = asset(folder, photo);
     image.alt = '';
     image.draggable = false;
-    image.style.left = `${100 * x / width}%`;
-    image.style.top = `${100 * y / height}%`;
-    image.style.width = `${100 * photoWidth / width}%`;
-    image.style.height = `${100 * photoHeight / height}%`;
+    image.style.left = `${100 * (x - photoBleed) / width}%`;
+    image.style.top = `${100 * (y - photoBleed) / height}%`;
+    image.style.width = `${100 * (photoWidth + 2 * photoBleed) / width}%`;
+    image.style.height = `${100 * (photoHeight + 2 * photoBleed) / height}%`;
     post.append(image);
   }
+  post.append(frameImage);
   return post;
 }
 

@@ -142,6 +142,13 @@ button, input, textarea { font: inherit; }
 .post-artwork { position: relative; }
 .post-artwork > img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 .post-artwork .post-photo { object-fit: cover; }
+.post-frame-with-photo-window {
+  mask-image:
+    linear-gradient(to right, #000 var(--photo-window-left), transparent var(--photo-window-left),
+      transparent var(--photo-window-right), #000 var(--photo-window-right)),
+    linear-gradient(to bottom, #000 var(--photo-window-top), transparent var(--photo-window-top),
+      transparent var(--photo-window-bottom), #000 var(--photo-window-bottom));
+}
 .tablet-options { display: grid; gap: .35rem; }
 .tablet-choice {
   display: grid;
