@@ -159,6 +159,21 @@ button, input, textarea { font: inherit; }
   cursor: pointer;
 }
 .settings-form button:disabled { opacity: .65; cursor: default; }
+.settings-comment-list { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.settings-comment-list:empty { display: none; }
+.settings-comment-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+  padding: .65rem;
+  border: 1px solid #7488a75c;
+  border-radius: .5rem;
+}
+.settings-comment-list li div { min-width: 0; overflow-wrap: anywhere; }
+.settings-comment-list small { color: #b5e7e8; }
+.settings-comment-list button { flex: none; }
+#refresh-comments { justify-self: start; }
 .settings-form .settings-status { min-height: 1.3em; color: #b5e7e8; }
 .settings-form .settings-status.error { color: #ffbecd; }
 .settings-save {

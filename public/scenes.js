@@ -159,10 +159,14 @@ export function makePanel(index) {
   }
   const liveStage = document.createElement('div');
   liveStage.className = 'live-stage';
-  const compactStage = document.createElement('div');
-  compactStage.className = 'compact-stage';
-  compactStage.style.setProperty('--comment-width', `${commentWidth}cqw`);
-  compactStage.setAttribute('aria-label', 'Recent audience comments');
-  panel.append(backdrop, sceneStage, logo, footer, ...stories, compactStage, liveStage);
-  return { panel, idleScenes, scenes, stories, liveStage, compactStage, compactCards: new Map(), scene: null, story: null, comment: null };
+  const compactLayers = scenes.map(() => {
+    const compactStage = document.createElement('div');
+    compactStage.className = 'compact-stage';
+    compactStage.hidden = true;
+    compactStage.style.setProperty('--comment-width', `${commentWidth}cqw`);
+    compactStage.setAttribute('aria-label', 'Recent audience comments');
+    return { compactStage, compactCards: new Map() };
+  });
+  panel.append(backdrop, sceneStage, logo, footer, ...stories, ...compactLayers.map(layer => layer.compactStage), liveStage);
+  return { panel, idleScenes, scenes, stories, compactLayers, liveStage, scene: null, story: null, compact: null, comment: null };
 }

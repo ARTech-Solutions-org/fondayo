@@ -14,6 +14,82 @@ function section(title, content) {
   return `<section class="settings-section"><h2>${title}</h2>${content}</section>`;
 }
 
+function manageComments(form) {
+  const list = form.querySelector('#audience-comments');
+  const refresh = form.querySelector('#refresh-comments');
+  const status = form.querySelector('#comment-status');
+  const accessKey = form.elements.accessKey;
+
+  function setBusy(busy) {
+    refresh.disabled = busy;
+    list.inert = busy;
+  }
+
+  async function load() {
+    setBusy(true);
+    status.textContent = 'Loading comments…';
+    try {
+      const response = await fetch('/api/state', { cache: 'no-store', signal: AbortSignal.timeout(6000) });
+      if (!response.ok) throw new Error();
+      const { comments } = await response.json();
+      const rows = [...comments].reverse().map(comment => {
+        const row = document.createElement('li');
+        const copy = document.createElement('div');
+        const name = document.createElement('strong');
+        const message = document.createElement('p');
+        const screen = document.createElement('small');
+        name.textContent = comment.name;
+        message.textContent = comment.message;
+        message.dir = 'auto';
+        name.dir = 'auto';
+        screen.textContent = ledNames[comment.panel];
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Delete';
+        button.dataset.commentId = comment.id;
+        button.setAttribute('aria-label', `Delete comment by ${comment.name}`);
+        copy.append(name, message, screen);
+        row.append(copy, button);
+        return row;
+      });
+      list.replaceChildren(...rows);
+      status.textContent = rows.length ? '' : 'No tablet comments to manage.';
+    } catch {
+      status.textContent = 'Could not load comments. Try refreshing the list.';
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  list.addEventListener('click', async ({ target }) => {
+    const button = target.closest('button[data-comment-id]');
+    if (!button || !accessKey.reportValidity() || !confirm('Delete this comment from the wall?')) return;
+    const headers = { 'Content-Type': 'application/json' };
+    if (accessKey.value) headers.Authorization = `Bearer ${accessKey.value}`;
+    setBusy(true);
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'DELETE', headers, body: JSON.stringify({ id: button.dataset.commentId }),
+        signal: AbortSignal.timeout(6000)
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        status.textContent = result.error;
+        return;
+      }
+      button.closest('li').remove();
+      status.textContent = list.children.length ? 'Comment deleted.' : 'Comment deleted. No tablet comments left.';
+    } catch {
+      status.textContent = 'Could not confirm the deletion. Refresh the list to check.';
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  refresh.addEventListener('click', load);
+  load();
+}
+
 export async function showSettings(app, logo) {
   app.className = 'home settings';
   app.innerHTML = `
@@ -21,6 +97,10 @@ export async function showSettings(app, logo) {
     <h1>Display settings</h1>
     <form class="settings-form">
       <fieldset class="settings-controls" disabled>
+        ${section('Tablet comments', `
+          <button type="button" id="refresh-comments">Refresh comments</button>
+          <p id="comment-status" role="status"></p>
+          <ul class="settings-comment-list" id="audience-comments"></ul>`)}
         ${section('LED outputs', `
           <p>Turning off an LED makes it black and stops its queued pop-ups. Its saved comments return when the LED is enabled.</p>
           <p>Idle playback is synchronized: screensavers, posts 1–3, then posts 4–6.</p>
@@ -105,8 +185,8 @@ export async function showSettings(app, logo) {
   const leds = form.querySelector('#displays');
   const scenes = form.querySelector('#scene-routes');
   const tablets = form.querySelector('#tablet-routes');
-  const save = form.querySelector('button');
-  const status = form.querySelector('[role="status"]');
+  const save = form.querySelector('button[type="submit"]');
+  const status = form.querySelector('.settings-save [role="status"]');
   let config;
   let savedCount;
 
@@ -195,6 +275,7 @@ export async function showSettings(app, logo) {
     setBusy(false);
     report('');
     renderTablets();
+    manageComments(form);
   } catch {
     report('Could not load settings. Reload this page to try again.', true);
     return;

@@ -80,8 +80,8 @@ function drawCompactFrame(card, scene, extraHeight) {
   }).catch(() => frameImages.delete(scene));
 }
 
-function compactComments(view, comments, scene) {
-  const width = view.panel.clientWidth;
+function compactComments(panel, view, comments, scene) {
+  const width = panel.clientWidth;
   const key = [scene, width, ...comments.map(comment => comment.id)].join('/');
   if (view.compactLayoutKey === key) return;
   view.compactLayoutKey = key;
@@ -129,7 +129,7 @@ function compactComments(view, comments, scene) {
     view.compactPositions = new Map();
     return;
   }
-  const panelHeight = view.panel.clientHeight * 100 / width;
+  const panelHeight = panel.clientHeight * 100 / width;
   const items = [...comments].reverse().map(({ id, slot }) => {
     const card = view.compactCards.get(id);
     const message = card.querySelector('.comment-copy p');
@@ -194,9 +194,13 @@ function switchLayer(view, key, next, duration, elapsed) {
     return;
   }
   const easing = 'cubic-bezier(.45, 0, .55, 1)';
+  // Fade saved cards through zero on post-to-post transitions so both copies never show together.
+  const through = key === 'compact' && previous && next;
   const animations = [
-    previous?.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing, fill: 'both' }),
-    next?.animate([{ opacity: 0 }, { opacity: 1 }], { duration, easing, fill: 'both' })
+    previous?.animate(through ? [{ opacity: 1 }, { opacity: 0, offset: .5 }, { opacity: 0 }]
+      : [{ opacity: 1 }, { opacity: 0 }], { duration, easing, fill: 'both' }),
+    next?.animate(through ? [{ opacity: 0 }, { opacity: 0, offset: .5 }, { opacity: 1 }]
+      : [{ opacity: 0 }, { opacity: 1 }], { duration, easing, fill: 'both' })
   ].filter(Boolean);
   for (const animation of animations) {
     animation.startTime = document.timeline.currentTime - elapsed;
@@ -296,16 +300,34 @@ function wall() {
       const scene = (enabled && (post ? view.scenes[post - 1] : view.idleScenes[saver - 1])) || null;
       view.panel.classList.toggle('is-black', scene === null);
       const story = post ? view.stories[post - 1] : null;
-      switchLayer(view, 'scene', scene, enabled && scene ? fade : 0, phaseElapsed);
-      switchLayer(view, 'story', story, enabled && scene ? fade : 0, phaseElapsed);
-      compactComments(view, post ? compact : [], post);
+      const sceneFade = enabled && scene ? fade : 0;
+      const layer = view.compactLayers[post - 1];
+      const entering = layer && layer.compactStage !== view.compact && sceneFade > phaseElapsed;
+      switchLayer(view, 'scene', scene, sceneFade, phaseElapsed);
+      switchLayer(view, 'story', story, sceneFade, phaseElapsed);
+      switchLayer(view, 'compact', layer?.compactStage ?? null, sceneFade, phaseElapsed);
+      if (layer) {
+        compactComments(view.panel, layer, compact, post);
+        if (entering && app.classList.contains('animate-story-cards')) {
+          for (const [id, position] of layer.compactPositions) {
+            const x = (50 - position.x) * .16;
+            const animation = layer.compactCards.get(id).animate([
+              { transform: `translateX(${x}cqw) translateY(1.2cqw) scale(.94)` },
+              { transform: 'none' }
+            ], { duration: sceneFade, easing: 'cubic-bezier(.22,.75,.25,1)' });
+            animation.startTime = document.timeline.currentTime - phaseElapsed;
+          }
+        }
+      }
       showLive(view, post ? comment : null, now, post);
     }
   }
   render();
   setInterval(render, 70);
   document.fonts.addEventListener('loadingdone', () => {
-    for (const view of views) view.compactLayoutKey = '';
+    for (const view of views) {
+      for (const layer of view.compactLayers) layer.compactLayoutKey = '';
+    }
     render();
   });
 }

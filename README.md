@@ -29,6 +29,8 @@ Use **Playback and submissions** to set the timeout for inactive drafts, the pop
 
 The five original comment cards stay visible during each comment scene. Audience comments shrink into cards that use the scene's original frame, shadow, heart, width and single-line height. The frame grows with each additional line. The app assigns a staggered position to each card and gives the latest comments priority when the artwork and taller comments leave less room than the configured limit.
 
+In **Tablet comments**, use **Refresh comments** to load the latest list, then **Delete** next to a queued or retained comment to remove it from the wall. For a Neon-backed installation, enter the **Settings access key** before deleting. Set `FONDAYO_ADMIN_TOKEN` in `.env.local` if the installation computer connects directly to Neon.
+
 Settings and retained comments persist locally across server restarts.
 
 ## Tablet fullscreen

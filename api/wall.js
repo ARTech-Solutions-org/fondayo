@@ -1,5 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
-import { readWallBody } from '../lib/http.mjs';
+import { readWallBody, requiresWallAdmin, wallAdminError } from '../lib/http.mjs';
 import { createNeonStore } from '../lib/neon-store.mjs';
 import { operateWall } from '../lib/wall.mjs';
 
@@ -10,28 +9,21 @@ function json(status, value) {
   return Response.json(value, { status, headers });
 }
 
-function authorized(request, secret) {
-  const expected = Buffer.from(`Bearer ${secret}`);
-  const provided = Buffer.from(request.headers.get('authorization') ?? '');
-  return expected.length === provided.length && timingSafeEqual(expected, provided);
-}
-
 export default {
   async fetch(request) {
     const operation = new URL(request.url).searchParams.get('operation');
     if (!['settings', 'comments', 'writing', 'state'].includes(operation)) {
       return json(404, { error: 'Page not found.' });
     }
-    if (operation === 'settings' && request.method === 'PUT') {
-      const secret = process.env.FONDAYO_ADMIN_TOKEN;
-      if (!secret) return json(503, { error: 'Set FONDAYO_ADMIN_TOKEN on the server to enable changes.' });
-      if (!authorized(request, secret)) return json(401, { error: 'Enter the correct settings access key.' });
+    if (requiresWallAdmin(operation, request.method)) {
+      const failure = wallAdminError(request.headers.get('authorization'), process.env.FONDAYO_ADMIN_TOKEN);
+      if (failure) return json(failure.status, { error: failure.error });
     }
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) return json(503, { error: 'Connect a Neon database to the deployment first.' });
 
     let input;
-    if (request.method === 'POST' || request.method === 'PUT') {
+    if (['POST', 'PUT', 'DELETE'].includes(request.method)) {
       const parsed = await readWallBody(request.body, request.headers.get('content-type'));
       if (parsed.error) return json(parsed.status, { error: parsed.error });
       input = parsed.input;

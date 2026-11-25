@@ -3,11 +3,13 @@ import { createReadStream } from 'node:fs';
 import { readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 import { extname } from 'node:path';
-import { readWallBody } from './lib/http.mjs';
+import { readWallBody, requiresWallAdmin, wallAdminError } from './lib/http.mjs';
 import { advanceWall, createWallState, operateWall, wallSnapshot } from './lib/wall.mjs';
 
 const port = Number(process.argv[2] ?? 8080);
 const databaseUrl = process.env.DATABASE_URL;
+const adminToken = process.env.FONDAYO_ADMIN_TOKEN;
+const requireAdmin = Boolean(databaseUrl || adminToken);
 const stateFile = new URL('.fondayo-state.json', import.meta.url);
 const temporaryStateFile = new URL('.fondayo-state.tmp', import.meta.url);
 const clients = new Set();
@@ -117,14 +119,20 @@ async function serve(request, response) {
   }
   const operation = path.match(/^\/api\/(settings|comments|writing|state)$/)?.[1];
   if (operation) {
+    if (requireAdmin && requiresWallAdmin(operation, request.method)) {
+      const failure = wallAdminError(request.headers.authorization, adminToken);
+      if (failure) return json(response, failure.status, { error: failure.error });
+    }
     let input;
-    if (request.method === 'POST' || request.method === 'PUT') {
+    if (['POST', 'PUT', 'DELETE'].includes(request.method)) {
       const parsed = await readWallBody(request, request.headers['content-type']);
       if (parsed.error) return json(response, parsed.status, { error: parsed.error });
       input = parsed.input;
     }
     const result = await transact(draft => operateWall(draft, operation, request.method, input, Date.now(), synchronizationMs));
-    return json(response, result.status, result.body);
+    const body = operation === 'settings' && result.status === 200
+      ? { ...result.body, adminRequired: requireAdmin } : result.body;
+    return json(response, result.status, body);
   }
   if (!['GET', 'HEAD'].includes(request.method)) return response.writeHead(405).end();
 
