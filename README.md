@@ -25,7 +25,7 @@ Use **LED outputs** to enable or disable each physical display, select its scree
 
 Use **Idle rotation** to set how long the screensavers and each group of posts appear on all three LEDs. The crossfade starts at the boundary between slides and blends the artwork while the logos and footer remain in place.
 
-Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit. Once an LED's limit is reached, a new small comment replaces the oldest on that LED. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original comment cards slide out from behind the post.
+Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit. Once the preferred LED is full, the next comment goes to another enabled LED with room. If all available LEDs are full, the new comment replaces the oldest there when it shrinks. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original comment cards slide out from behind the post.
 
 The five original comment cards stay visible during each comment scene. Audience comments shrink into cards that use the scene's original frame, shadow, heart, width and single-line height. The frame grows with each additional line. The app assigns a staggered position to each card and gives the latest comments priority when the artwork and taller comments leave less room than the configured limit.
 

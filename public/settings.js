@@ -71,7 +71,7 @@ export async function showSettings(app, logo) {
               <span><input name="gap" type="number" inputmode="decimal" min="0" max="10" step="0.05" required> seconds</span>
             </label>
           </div>
-          <p>Comments stay saved until a newer comment replaces the oldest at that LED's limit.</p>`)}
+          <p>When the preferred LED is full, new comments go to another enabled LED with room. When all available LEDs are full, the oldest comment is replaced.</p>`)}
         ${section('Animation and appearance', `
           <div class="settings-grid">
             <label>LED comment entrance
@@ -128,8 +128,8 @@ export async function showSettings(app, logo) {
       if (config.tabletEnabled[index] === false) element.textContent = 'Tablet disabled';
       else if (!config.sceneEnabled[scene]) element.textContent = 'Scene disabled';
       else if (target === 4) element.textContent = 'Random enabled LED';
-      else if (!config.displays[panel].enabled) element.textContent = `${ledNames[panel]} disabled`;
-      else element.textContent = ledNames[panel];
+      else if (!config.displays[panel].enabled) element.textContent = `${ledNames[panel]} off · uses another LED`;
+      else element.textContent = `${ledNames[panel]} preferred`;
     });
   }
 
