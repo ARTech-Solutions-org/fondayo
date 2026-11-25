@@ -134,10 +134,14 @@ button, input, textarea { font: inherit; }
   text-decoration: underline;
   font-size: .85rem;
 }
-.scene-choice img { width: 100%; height: 3.7rem; object-fit: cover; object-position: center; border-radius: .3rem; }
-.scene-choice > div { display: grid; gap: .35rem; min-width: 0; }
+.scene-preview { display: flex; align-items: center; height: 3.7rem; overflow: hidden; border-radius: .3rem; }
+.scene-thumbnail { width: 100%; }
+.scene-choice > div:last-child { display: grid; gap: .35rem; min-width: 0; }
 .scene-choice label { display: block; margin-bottom: .25rem; }
 .scene-choice select { width: 100%; }
+.post-artwork { position: relative; }
+.post-artwork > img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.post-artwork .post-photo { object-fit: cover; }
 .tablet-options { display: grid; gap: .35rem; }
 .tablet-choice {
   display: grid;
@@ -266,7 +270,7 @@ button, input, textarea { font: inherit; }
 .settings-example .preview-background { inset: 0; width: 100%; height: 100%; }
 .preview-title { inset: 30% 10% auto; width: 80%; height: 40%; }
 .preview-art { position: absolute; inset: 0; background: radial-gradient(ellipse, #7399df, #324e99); }
-.preview-post { inset: 7% 30% auto; width: 40%; height: 86%; }
+.preview-post { position: absolute; top: 50%; left: 50%; width: 36%; translate: -50% -50%; }
 .settings-example.post-small .preview-post { scale: .75; }
 .settings-example.post-clearance .preview-cards { inset-inline: 2%; grid-template-columns: repeat(2, 25%); }
 .preview-cards { position: absolute; display: grid; inset: 22% 5%; grid-template-columns: repeat(2, 28%); justify-content: space-between; align-content: space-around; gap: .35rem 0; }
@@ -339,7 +343,7 @@ button, input, textarea { font: inherit; }
   animation: post-in 0.95s cubic-bezier(.18,.83,.3,1.08) both;
 }
 /* These three exports include a shadow outside the rounded white card. */
-:is(.post-body, .preview-post):is([data-post-scene='3'], [data-post-scene='5'], [data-post-scene='6']) {
+.post-artwork:is([data-post-scene='3'], [data-post-scene='5'], [data-post-scene='6']) {
   clip-path: inset(.8% 2.5% 2% 1.15% round 7.4% / 5.3%);
 }
 .has-post-border { --post-clear-x: calc(var(--post-half-width) + var(--post-border)); }

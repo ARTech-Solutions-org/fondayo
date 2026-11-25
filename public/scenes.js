@@ -27,10 +27,46 @@ const idleLayouts = [
 
 const common = `${source}/screen%20sever%20post%201/screen-saver1`;
 const asset = (folder, number) => `${folder}/Asset%20${number}.png`;
-const postAssets = [64, 74, 147, 161, 176, 20];
+const postAssets = [
+  { frame: 64, width: 429, height: 602 },
+  { frame: 74, width: 429, height: 602, photo: 73, photoRect: [18, 106, 395, 326] },
+  { frame: 147, width: 441, height: 615, photo: 140, photoRect: [20, 109, 395, 326] },
+  { frame: 161, width: 429, height: 602 },
+  { frame: 176, width: 440, height: 615, photo: 175, photoRect: [20, 109, 395, 326] },
+  { frame: 20, width: 441, height: 614 }
+];
 
-export function postImage(scene) {
-  return asset(`${source}/post1/screen${scene}`, postAssets[scene - 1]);
+export function postArtwork(scene, className, label = '') {
+  const { frame, width, height, photo, photoRect } = postAssets[scene - 1];
+  const folder = `${source}/post1/screen${scene}`;
+  const post = document.createElement('div');
+  post.className = `post-artwork ${className}`;
+  post.dataset.postScene = scene;
+  post.style.aspectRatio = `${width} / ${height}`;
+  if (label) {
+    post.setAttribute('role', 'img');
+    post.setAttribute('aria-label', label);
+  }
+
+  const artwork = document.createElement('img');
+  artwork.src = asset(folder, frame);
+  artwork.alt = '';
+  artwork.draggable = false;
+  post.append(artwork);
+  if (photoRect) {
+    const [x, y, photoWidth, photoHeight] = photoRect;
+    const image = document.createElement('img');
+    image.className = 'post-photo';
+    image.src = asset(folder, photo);
+    image.alt = '';
+    image.draggable = false;
+    image.style.left = `${100 * x / width}%`;
+    image.style.top = `${100 * y / height}%`;
+    image.style.width = `${100 * photoWidth / width}%`;
+    image.style.height = `${100 * photoHeight / height}%`;
+    post.append(image);
+  }
+  return post;
 }
 
 // Preferred scatter anchors. The placement engine adjusts them to fit the artwork.
@@ -57,7 +93,7 @@ export function commentFrame(scene, cardWidth = commentWidth) {
   return height * cardWidth / width;
 }
 
-const postAspectHeights = [602 / 429, 602 / 429, 615 / 441, 602 / 429, 615 / 440, 614 / 441];
+const postAspectHeights = postAssets.map(({ height, width }) => height / width);
 
 export function postWidth(size = 100, panelHeight = 100, border = 0) {
   const requested = postArtworkWidth / 9.6 * size / 100;
@@ -93,16 +129,21 @@ export function commentObstacles(scene, height, size = 100, border = 0) {
   ];
 }
 
+function positionArtwork(element, x, y, width) {
+  element.classList.add('art');
+  element.style.setProperty('--x', `${x / 9.6}%`);
+  element.style.setProperty('--y', `${y / 5.4}%`);
+  element.style.setProperty('--size', `${width / 9.6}cqw`);
+  return element;
+}
+
 export function artwork(src, x, y, width, className, alt = '') {
   const image = document.createElement('img');
-  image.className = `art ${className}`;
+  image.className = className;
   image.src = src;
   image.alt = alt;
   image.draggable = false;
-  image.style.setProperty('--x', `${x / 9.6}%`);
-  image.style.setProperty('--y', `${y / 5.4}%`);
-  image.style.setProperty('--size', `${width / 9.6}cqw`);
-  return image;
+  return positionArtwork(image, x, y, width);
 }
 
 export function makePanel(index) {
@@ -162,8 +203,7 @@ export function makePanel(index) {
     }
     const x = postArtworkX;
     const y = postArtworkY;
-    const post = artwork(postImage(number), x, y, postArtworkWidth, 'post-body', 'Campaign social post');
-    post.dataset.postScene = number;
+    const post = positionArtwork(postArtwork(number, 'post-body', 'Campaign social post'), x, y, postArtworkWidth);
     scene.append(decorations, post);
     const leftCards = layout.cards.filter(([, cardX]) => cardX < x);
     const rightCards = layout.cards.filter(([, cardX]) => cardX >= x);

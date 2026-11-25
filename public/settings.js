@@ -1,4 +1,4 @@
-import { defaultPostBorder, postImage } from './scenes.js';
+import { defaultPostBorder, postArtwork } from './scenes.js';
 
 const ledNames = ['Left LED', 'Center LED', 'Right LED'];
 const sceneNames = Array.from({ length: 6 }, (_, index) => `Scene ${index + 1}`);
@@ -61,7 +61,7 @@ function helpPreview([caption, style], video) {
   const saverPath = `/design/design/screen%20sever%20post%201/screen-saver${saverNumber}/Asset%20`;
   const artwork = saver
     ? `<img class="preview-background" src="${saverPath}${saverBackground}.png" alt=""><img class="preview-title" src="${saverPath}${saverTitle}.png" alt="">`
-    : `<div class="preview-art"><img class="preview-post" data-post-scene="${post}" src="${postImage(post)}" alt=""><div class="preview-cards"><i></i><i></i><i></i><i></i></div></div>`;
+    : `<div class="preview-art">${postArtwork(post, 'preview-post').outerHTML}<div class="preview-cards"><i></i><i></i><i></i><i></i></div></div>`;
   return `<figure><div class="settings-example ${style}" aria-hidden="true">
     ${style === 'black' ? '' : artwork}
   </div><figcaption>${caption}</figcaption></figure>`;
@@ -441,7 +441,7 @@ export async function showSettings(app, logo) {
       </div>`).join('');
     scenes.innerHTML = sceneNames.map((name, index) => `
       <div class="scene-choice">
-        <img src="${postImage(index + 1)}" alt="">
+        <div class="scene-preview">${postArtwork(index + 1, 'scene-thumbnail').outerHTML}</div>
         <div>
           <label class="settings-toggle"><input type="checkbox" data-field="sceneEnabled" data-index="${index}" aria-label="Enable ${name}"${checked(config.sceneEnabled[index])}> ${name}</label>
           <select aria-label="${name} LED" data-field="panelByScene" data-index="${index}">${options(ledNames, config.panelByScene[index])}</select>
