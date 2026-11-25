@@ -320,8 +320,6 @@ button, input, textarea { font: inherit; }
   translate: 0 -50%;
   width: 10.85%;
   aspect-ratio: 1;
-  color: #3e454d;
-  font-size: 1.24cqw;
 }
 .compact-comment .comment-copy {
   --name-height: .86cqw;
@@ -408,14 +406,19 @@ button, input, textarea { font: inherit; }
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #deedf6;
-  color: #2245a1;
-  font-weight: 800;
+  background: #e6ecf4;
+  color: #4b6580;
 }
-[data-profile='male'] { background: #dfedff; color: #284ca5; }
-[data-profile='female'] { background: #f9e2f3; color: #9d4086; }
-.wall-comment .comment-avatar { width: 3.7cqw; aspect-ratio: 1; font-size: 1.8cqw; }
-.comment-avatar.arabic { font-family: 'Adobe Arabic', Arial, sans-serif; }
+:is(.comment-avatar, .form-avatar)::before {
+  content: '';
+  width: 76%;
+  aspect-ratio: 1;
+  background: currentColor;
+  mask: url('/media/person-fill-svgrepo-com.svg') center / contain no-repeat;
+}
+:is(.comment-avatar, .form-avatar)[data-profile='male'] { background: #dcecff; color: #245ab7; }
+:is(.comment-avatar, .form-avatar)[data-profile='female'] { background: #fde1ef; color: #be3b7b; }
+.wall-comment .comment-avatar { width: 3.7cqw; aspect-ratio: 1; }
 .comment-heart { color: #3d5fbc; font-family: Arial, sans-serif; }
 .wall-comment .comment-heart { grid-area: 1 / 3; font-size: 2.5cqw; line-height: 1; }
 .impact {
@@ -546,7 +549,7 @@ button, input, textarea { font: inherit; }
   grid-template-columns: 3.7cqw minmax(0, 1fr);
   gap: 1.45cqw;
 }
-.form-avatar { width: 100%; aspect-ratio: 1; font-size: 1.7cqw; }
+.form-avatar { width: 100%; aspect-ratio: 1; }
 .form-inputs { min-width: 0; }
 .profiles { border: 0; padding: 0; margin: 0 0 .18cqw; display: flex; gap: 2.2cqw; }
 .profiles label {
@@ -701,7 +704,6 @@ button, input, textarea { font: inherit; }
   .post-icons { margin-top: 1.4rem; }
   .post-caption { width: min(42%, 180px); margin-top: .75rem; }
   .comment-form { margin-top: .65rem; grid-template-columns: clamp(30px, 7cqw, 50px) minmax(0, 1fr); gap: .5rem; }
-  .form-avatar { font-size: 1rem; }
   .profiles { gap: .8rem; }
   .profiles label { min-height: 2rem; font-size: .9rem; }
   .form-inputs > input, .form-inputs > textarea { font-size: 1rem; padding: .25rem; }

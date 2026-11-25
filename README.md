@@ -17,7 +17,7 @@ For a combined output, map the left panel to pixels 0–1535, the center panel t
 
 In `/settings`, assign each of the six numbered scenes to the left, center, or right LED. Set the number of tablets from 1 to 24 and choose a scene for each tablet. Multiple scenes can use the same LED, and multiple tablets can submit to the same scene.
 
-After saving, open the matching numbered URL on each physical tablet using the host computer's network address. The original `/tablet` URL opens tablet 1. Choose a specific LED, follow the LED assigned to the scene, or select Random LED to route each submission to an available enabled output.
+After saving, open the matching numbered URL on each physical tablet using the host computer's network address. The original `/tablet` URL opens tablet 1. A fixed LED offers its two post scenes: left 1 or 4, center 2 or 5, and right 3 or 6. Random LED picks an available enabled LED and one of its enabled scenes for each comment. **Follow scene LED** uses the output assigned to the selected scene as its preference. In every routing mode, a comment stays on the scene assigned when it was submitted.
 
 All outputs share one playback timeline. In idle, the left LED cycles through screensaver 1, post 1, and post 4. The center cycles through screensaver 2, post 2, and post 5. The right cycles through screensaver 3, post 3, and post 6. The first tablet to start typing selects a group of three posts. The wall holds that group while anyone is writing and for the configured hold time after the latest comment shrinks. Every output then restarts its idle loop at the screensaver. Retained comments appear again on that LED's post slides. The individual `/screen/1`, `/screen/2`, and `/screen/3` pages share this timeline with `/wall`.
 
@@ -25,7 +25,7 @@ Use **LED outputs** to enable or disable each physical display, select its scree
 
 Use **Idle rotation** to set how long the screensavers and each group of posts appear on all three LEDs. The crossfade starts at the boundary between slides and blends the artwork while the logos and footer remain in place.
 
-Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit. Once the preferred LED is full, the next comment goes to another enabled LED with room. If all available LEDs are full, the new comment replaces the oldest there when it shrinks. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original comment cards slide out from behind the post.
+Use **Playback and submissions** to set the timeout for inactive drafts, the pop-up and post-group hold times, and the default small-comment limit. A fixed LED keeps its comments on the same output and replaces the oldest there when the LED is full. The other routing modes can use any enabled LED with room. If all available LEDs are full, the new comment replaces the oldest there when it shrinks. **Animation and appearance** controls the wall-wide blur during a pop-up, the post artwork motion, and whether original comment cards slide out from behind the post.
 
 The five original comment cards stay visible during each comment scene. Audience comments shrink into cards that use the scene's original frame, shadow, heart, width and single-line height. The frame grows with each additional line. The app assigns a staggered position to each card and gives the latest comments priority when the artwork and taller comments leave less room than the configured limit.
 

@@ -91,6 +91,7 @@ const mime = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.png': 'image/png',
+  '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
   '.otf': 'font/otf',
   '.ttf': 'font/ttf'
@@ -142,7 +143,7 @@ async function serve(request, response) {
     response.writeHead(200, { 'Content-Type': mime['.html'], 'Cache-Control': 'no-cache' });
     return response.end(request.method === 'HEAD' ? undefined : cloudPage);
   }
-  if (/^\/(?:app\.js|scenes\.js|comment-layout\.js|settings\.js|styles\.css|media\/post-[1-6]\.webp|media\/comment-(?:frame|heart)-[1-6]\.png)$/.test(path)) file = `public${path}`;
+  if (/^\/(?:app\.js|scenes\.js|comment-layout\.js|settings\.js|styles\.css|media\/post-[1-6]\.webp|media\/comment-(?:frame|heart)-[1-6]\.png|media\/person-fill-svgrepo-com\.svg)$/.test(path)) file = `public${path}`;
   if (/^\/Fonts\/[\w-]+\.(otf|ttf)$/i.test(path)) file = path.slice(1);
   if (/^\/design\/design\/(?:tablet|post1\/screen[1-6]|screen sever post 1\/screen-saver[1-3])\/Asset \d+\.png$/.test(path)) {
     file = path.slice(1);

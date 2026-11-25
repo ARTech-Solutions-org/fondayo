@@ -127,7 +127,7 @@ export async function showSettings(app, logo) {
             <label for="tablet-count">Number of tablets</label>
             <input id="tablet-count" type="number" inputmode="numeric" min="1" step="1" required>
           </div>
-          <p>The first tablet to start writing selects the post group for the whole wall. Choose a fixed LED, follow the scene, or select a random enabled LED for each send.</p>
+          <p>A fixed LED offers its two scenes. Random LED picks an available LED and one of its enabled scenes for each comment.</p>
           <div class="tablet-options" id="tablet-routes"></div>`)}
         ${section('Playback and submissions', `
           <label class="settings-toggle"><input type="checkbox" name="accepting"> Accept new comments</label>
@@ -151,7 +151,7 @@ export async function showSettings(app, logo) {
               <span><input name="gap" type="number" inputmode="decimal" min="0" max="10" step="0.05" required> seconds</span>
             </label>
           </div>
-          <p>When the preferred LED is full, new comments go to another enabled LED with room. When all available LEDs are full, the oldest comment is replaced.</p>`)}
+          <p>Fixed LEDs keep new comments on their selected scene. Other routing modes can use another LED with room. If there is no room on the available LEDs, the oldest eligible comment is replaced.</p>`)}
         ${section('Animation and appearance', `
           <div class="settings-grid">
             <label>LED comment entrance
@@ -201,15 +201,25 @@ export async function showSettings(app, logo) {
   }
 
   function updateDestinations() {
-    tablets.querySelectorAll('.tablet-destination').forEach((element, index) => {
+    tablets.querySelectorAll('.tablet-choice').forEach((row, index) => {
+      const destination = row.querySelector('.tablet-destination');
+      const select = row.querySelector('[data-field="sceneByTablet"]');
+      const led = config.panelByTablet[index];
+      const fixed = led >= 1 && led <= 3;
+      const random = led === 4;
+      if (fixed) config.sceneByTablet[index] = led + (config.sceneByTablet[index] > 3 ? 3 : 0);
       const scene = config.sceneByTablet[index] - 1;
-      const target = config.panelByTablet[index] || config.panelByScene[scene];
-      const panel = target - 1;
-      if (config.tabletEnabled[index] === false) element.textContent = 'Tablet disabled';
-      else if (!config.sceneEnabled[scene]) element.textContent = 'Scene disabled';
-      else if (target === 4) element.textContent = 'Random enabled LED';
-      else if (!config.displays[panel].enabled) element.textContent = `${ledNames[panel]} off · uses another LED`;
-      else element.textContent = `${ledNames[panel]} preferred`;
+      const choices = fixed ? [led, led + 3] : sceneNames.map((_, offset) => offset + 1);
+      select.innerHTML = random ? `<option value="${scene + 1}">Random scene</option>` : choices.map(post =>
+        `<option value="${post}"${post === scene + 1 ? ' selected' : ''}>${sceneNames[post - 1]}${config.sceneEnabled[post - 1] ? '' : ' (off)'}</option>`
+      ).join('');
+      select.disabled = random;
+      const panel = (led || config.panelByScene[scene]) - 1;
+      if (config.tabletEnabled[index] === false) destination.textContent = 'Tablet disabled';
+      else if (random) destination.textContent = 'Random enabled LED and scene';
+      else if (!config.sceneEnabled[scene]) destination.textContent = 'Scene disabled';
+      else if (!config.displays[panel].enabled) destination.textContent = fixed ? `${ledNames[panel]} disabled` : `${ledNames[panel]} off · uses another LED`;
+      else destination.textContent = fixed ? ledNames[panel] : `${ledNames[panel]} preferred`;
     });
   }
 
@@ -222,7 +232,7 @@ export async function showSettings(app, logo) {
       config.tabletEnabled[index] ??= true;
       return `<div class="tablet-choice">
         <label class="settings-toggle"><input type="checkbox" data-field="tabletEnabled" data-index="${index}" aria-label="Enable tablet ${id}"${checked(config.tabletEnabled[index])}> Tablet ${id}</label>
-        <select aria-label="Tablet ${id} scene" data-field="sceneByTablet" data-index="${index}">${options(sceneNames, config.sceneByTablet[index])}</select>
+        <select aria-label="Tablet ${id} scene" data-field="sceneByTablet" data-index="${index}"></select>
         <select aria-label="Tablet ${id} LED" data-field="panelByTablet" data-index="${index}">${options(['Follow scene LED', ...ledNames, 'Random LED'], config.panelByTablet[index], 0)}</select>
         <span class="tablet-destination"></span>
         ${id <= savedCount ? `<a href="/tablet/${id}" target="_blank" rel="noopener">/tablet/${id}</a>` : '<span class="tablet-link-pending">Link after saving</span>'}
@@ -335,7 +345,7 @@ export async function showSettings(app, logo) {
         return;
       }
       savedCount = result.sceneByTablet.length;
-      report(result.stopped ? `Saved. Removed ${result.stopped} live or queued comments from disabled LEDs.` : 'Settings saved.');
+      report(result.stopped ? `Saved. Removed ${result.stopped} live or queued comments from disabled LEDs or scenes.` : 'Settings saved.');
     } catch {
       report('Could not save settings. Try again.', true);
     } finally {

@@ -20,8 +20,7 @@ function commentCard(comment) {
   card.className = 'comment-card';
   const avatar = document.createElement('span');
   avatar.className = 'comment-avatar';
-  avatar.dataset.profile = comment.profile;
-  setText(avatar, [...comment.name][0].toLocaleUpperCase());
+  avatar.dataset.profile = comment.profile ?? '';
   avatar.setAttribute('aria-hidden', 'true');
   const text = document.createElement('div');
   text.className = 'comment-copy';
@@ -293,10 +292,14 @@ function wall() {
       const { enabled, saver, limit } = displays[view.index];
       const active = enabled ? comments.filter(entry => entry.panel === view.index && entry.start <= now) : [];
       const comment = active.find(entry => (entry.compactAt ?? entry.end) > now);
-      const compact = active.filter(entry => entry.compactAt <= now).slice(-(limit || commentLimit));
       const group = liveGroup ?? (phase === 0 ? null : phase - 1);
-      const post = enabled && group !== null && (!idle || saver)
-        ? rotation.posts[group][view.index] : 0;
+      let post = enabled && group !== null && (!idle || saver) ? rotation.posts[group][view.index] : 0;
+      const held = comment ?? active.findLast(entry => entry.end > now);
+      if (post && held && rotation.posts.some(posts => posts[view.index] === held.scene)) {
+        post = held.scene;
+      }
+      const compact = active.filter(entry => entry.compactAt <= now && entry.scene === post)
+        .slice(-(limit || commentLimit));
       const scene = (enabled && (post ? view.scenes[post - 1] : view.idleScenes[saver - 1])) || null;
       view.panel.classList.toggle('is-black', scene === null);
       const story = post ? view.stories[post - 1] : null;
@@ -319,7 +322,7 @@ function wall() {
           }
         }
       }
-      showLive(view, post ? comment : null, now, post);
+      showLive(view, post && comment?.scene === post ? comment : null, now, post);
     }
   }
   render();
@@ -462,7 +465,6 @@ function tablet(tabletId) {
     name.setCustomValidity('');
     message.setCustomValidity('');
     avatar.dataset.profile = form.elements.profile.value;
-    avatar.textContent = ([...name.value.trim()][0] ?? '').toLocaleUpperCase();
   });
 
   form.addEventListener('submit', async event => {
@@ -507,7 +509,6 @@ function tablet(tabletId) {
         await new Promise(resolve => setTimeout(resolve, flightTime));
       }
       form.reset();
-      avatar.textContent = '';
       avatar.dataset.profile = '';
       pending = null;
       writer = null;
